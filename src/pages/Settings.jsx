@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Truck, RefreshCw } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Truck, RefreshCw, Wand2 } from 'lucide-react';
 import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
 import { syncDistributors } from '@/functions/syncDistributors';
+import { getSmartSuiteInfo } from '@/functions/getSmartSuiteInfo';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -82,6 +83,32 @@ export default function Settings() {
     }
   };
 
+  const [detectingIds, setDetectingIds] = useState(false);
+
+  const handleDetectIds = async () => {
+    if (!form.smartsuite_api_token) {
+      toast({ title: 'Vul eerst je API token in', variant: 'destructive' });
+      return;
+    }
+    setDetectingIds(true);
+    const res = await getSmartSuiteInfo({ api_token: form.smartsuite_api_token });
+    setDetectingIds(false);
+    if (res.data?.error) {
+      toast({ title: 'Fout bij ophalen', description: res.data.error + (res.data.details ? ': ' + res.data.details.slice(0, 200) : ''), variant: 'destructive' });
+      return;
+    }
+    const solutions = res.data?.solutions || [];
+    if (solutions.length === 0) {
+      toast({ title: 'Geen solutions gevonden', variant: 'destructive' });
+      return;
+    }
+    // Show modal with solutions to pick from
+    setDetectedSolutions(solutions);
+    toast({ title: `${solutions.length} solution(s) gevonden`, description: 'Kies hieronder de juiste solution en tabel.' });
+  };
+
+  const [detectedSolutions, setDetectedSolutions] = useState([]);
+
   const [grantCode, setGrantCode] = useState('');
   const [generatingToken, setGeneratingToken] = useState(false);
   const [newRefreshToken, setNewRefreshToken] = useState('');
@@ -147,6 +174,42 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="API Token" name="smartsuite_api_token" placeholder="Enter SmartSuite API token" secret />
+          <Button type="button" variant="outline" onClick={handleDetectIds} disabled={detectingIds} className="gap-2 w-full">
+            <Wand2 className={`w-4 h-4 ${detectingIds ? 'animate-spin' : ''}`} />
+            {detectingIds ? 'Ophalen…' : 'Detecteer Account / Solution / Table IDs automatisch'}
+          </Button>
+          {detectedSolutions.length > 0 && (
+            <div className="rounded-lg border border-border divide-y divide-border text-sm">
+              {detectedSolutions.map(sol => (
+                <div key={sol.id} className="p-3 space-y-2">
+                  <p className="font-medium">{sol.name} <span className="text-xs text-muted-foreground font-mono ml-1">{sol.id}</span></p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, smartsuite_solution_id: sol.id }))}>
+                      Gebruik als Solution ID
+                    </Button>
+                    {sol.account_id && (
+                      <Button size="sm" variant="secondary" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, smartsuite_account_id: sol.account_id }))}>
+                        Account ID: {sol.account_id}
+                      </Button>
+                    )}
+                  </div>
+                  {sol.applications && sol.applications.length > 0 && (
+                    <div className="pl-2 space-y-1">
+                      <p className="text-xs text-muted-foreground">Tabellen:</p>
+                      {sol.applications.map(app => (
+                        <div key={app.id} className="flex items-center gap-2">
+                          <span className="text-xs">{app.name}</span>
+                          <Button size="sm" variant="ghost" className="text-xs h-6 px-2" onClick={() => setForm(p => ({ ...p, smartsuite_table_id: app.id }))}>
+                            Gebruik als Table ID
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <Field label="Account ID" name="smartsuite_account_id" placeholder="e.g. abc123" />
           <Field label="Solution ID" name="smartsuite_solution_id" placeholder="e.g. sol_abc123" />
           <Field label="Table ID" name="smartsuite_table_id" placeholder="e.g. tbl_abc123" />
