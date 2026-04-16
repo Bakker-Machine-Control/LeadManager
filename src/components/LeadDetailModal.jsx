@@ -57,8 +57,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
     // Skip fields whose formatted value looks like a short internal code (no spaces, all lowercase, short)
     const formatted = formatValue(v);
     if (formatted === '—') return false;
-    // Prefer fields whose value looks like a real company name (contains uppercase or space or longer than 6 chars)
-    return formatted.length > 4 && (formatted.includes(' ') || /[A-Z]/.test(formatted));
+    return formatted.length > 2;
   }) : null;
 
   const handleSaveNotes = async () => {
