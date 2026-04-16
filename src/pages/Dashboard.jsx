@@ -172,6 +172,11 @@ export default function Dashboard() {
     setSyncingAll(false);
   };
 
+  const handleSaveNotes = async (rec, notes) => {
+    const result = await doSync({ ...rec, notes });
+    toast({ title: result?.success ? 'Opmerking gesynchroniseerd!' : 'Sync mislukt', description: result?.message || '', variant: result?.success ? 'default' : 'destructive' });
+  };
+
   const handleStatusSave = async (rec, newStatus) => {
     if (!settings?.smartsuite_api_token) return;
     await updateSmartSuiteStatus({
@@ -373,6 +378,7 @@ export default function Dashboard() {
         open={!!selectedRecord}
         onClose={() => setSelectedRecord(null)}
         fieldLabels={fieldLabels}
+        onSaveNotes={handleSaveNotes}
       />
     </div>
   );

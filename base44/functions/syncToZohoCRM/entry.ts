@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
         Email: lead.email || '',
         Phone: lead.phone || '',
         Company: lead.company || 'Unknown',
+        ...(lead.notes ? { Description: lead.notes } : {}),
       };
 
       const resp = await fetch(`${domain}/crm/v2/Leads/upsert`, {
