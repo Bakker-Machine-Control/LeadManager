@@ -4,22 +4,22 @@ import { format, parseISO } from 'date-fns';
 import { Mail, Phone, Building2, Calendar, CheckCircle2, AlertCircle, MinusCircle, Hash } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
+const formatDate = (d) => {
+  try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
+};
+
+const Row = ({ icon: Icon, label, value }) => (
+  <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
+    <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium break-all">{value || '—'}</p>
+    </div>
+  </div>
+);
+
 export default function LeadDetailModal({ record, open, onClose }) {
   if (!record) return null;
-
-  const formatDate = (d) => {
-    try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
-  };
-
-  const Row = ({ icon: Icon, label, value }) => (
-    <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
-      <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium break-all">{value || '—'}</p>
-      </div>
-    </div>
-  );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
