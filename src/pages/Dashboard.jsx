@@ -92,7 +92,7 @@ export default function Dashboard() {
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
         lead_date: item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
-      }));
+      })).filter(r => r.phone && r.phone.startsWith('+31'));
       setRecords(mapped);
       toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald. Zoho check bezig…` });
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
