@@ -47,14 +47,10 @@ Deno.serve(async (req) => {
         item.id,
     })).filter(d => d.name);
 
-    // Clear existing and re-insert
+    // Clear existing and re-insert using bulk operations
     const existing = await base44.asServiceRole.entities.Distributor.list();
-    for (const d of existing) {
-      await base44.asServiceRole.entities.Distributor.delete(d.id);
-    }
-    for (const d of distributors) {
-      await base44.asServiceRole.entities.Distributor.create(d);
-    }
+    await Promise.all(existing.map(d => base44.asServiceRole.entities.Distributor.delete(d.id)));
+    await base44.asServiceRole.entities.Distributor.bulkCreate(distributors);
 
     return Response.json({ count: distributors.length, distributors });
   } catch (error) {
