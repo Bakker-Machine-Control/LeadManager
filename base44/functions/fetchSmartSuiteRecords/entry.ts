@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ limit: 500, offset: 0, sort: [{ field_id: 'sc8d719ad3', direction: 'asc' }] }),
+        body: JSON.stringify({ limit: 1000, offset: 0, sort: [{ field_id: 'sc8d719ad3', direction: 'asc' }] }),
       }),
       fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/`, {
         method: 'GET',
