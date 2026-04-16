@@ -336,7 +336,7 @@ export default function Dashboard() {
                 <thead>
                   <tr className="bg-muted/50 border-y border-border text-muted-foreground text-xs uppercase tracking-wide">
                     <th className="px-4 py-2.5 text-left font-medium">Naam</th>
-                    <th className="px-4 py-2.5 text-left font-medium">Datum</th>
+                    <th className="px-4 py-2.5 text-left font-medium whitespace-nowrap">Datum</th>
                     <th className="px-4 py-2.5 text-left font-medium">Email</th>
                     <th className="px-4 py-2.5 text-left font-medium">Telefoon</th>
                     <th className="px-4 py-2.5 text-left font-medium">Bedrijf</th>

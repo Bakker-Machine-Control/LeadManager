@@ -39,7 +39,7 @@ export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, 
           <p className="text-xs text-muted-foreground">{record.smartsuite_id}</p>
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
+      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
         {record.lead_date ? (() => { try { return format(parseISO(record.lead_date), 'dd-MM-yyyy'); } catch { return record.lead_date; } })() : '—'}
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.email || '—'}</td>
