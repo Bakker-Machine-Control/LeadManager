@@ -13,24 +13,43 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required SmartSuite credentials' }, { status: 400 });
     }
 
-    const url = `https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${api_token}`,
-        'ACCOUNT-ID': account_id,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ limit: 200, offset: 0 }),
-    });
+    const headers = {
+      'Authorization': `Token ${api_token}`,
+      'ACCOUNT-ID': account_id,
+      'Content-Type': 'application/json',
+    };
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return Response.json({ error: `SmartSuite API error: ${response.status} - ${errText}` }, { status: 502 });
+    // Fetch records and field structure in parallel
+    const [recordsResp, structureResp] = await Promise.all([
+      fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ limit: 500, offset: 0 }),
+      }),
+      fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/`, {
+        method: 'GET',
+        headers,
+      }),
+    ]);
+
+    if (!recordsResp.ok) {
+      const errText = await recordsResp.text();
+      return Response.json({ error: `SmartSuite API error: ${recordsResp.status} - ${errText}` }, { status: 502 });
     }
 
-    const data = await response.json();
-    return Response.json({ items: data.items || [], total: data.total || 0 });
+    const data = await recordsResp.json();
+
+    // Build slug -> label map from structure
+    let fieldLabels = {};
+    if (structureResp.ok) {
+      const structure = await structureResp.json();
+      const fields = structure.structure || [];
+      fields.forEach(f => {
+        if (f.slug && f.label) fieldLabels[f.slug] = f.label;
+      });
+    }
+
+    return Response.json({ items: data.items || [], total: data.total || 0, fieldLabels });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

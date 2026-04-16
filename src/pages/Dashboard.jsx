@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [syncingId, setSyncingId] = useState(null);
   const [logRefresh, setLogRefresh] = useState(0);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [fieldLabels, setFieldLabels] = useState({});
 
   // Search & sort state
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,6 +84,7 @@ export default function Dashboard() {
       await logAction('fetch', 'error', res.data.error, 0);
     } else {
       const items = res.data?.items || [];
+      if (res.data?.fieldLabels) setFieldLabels(res.data.fieldLabels);
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
         name: extractField(item, ['title', 'name', 'full_name', 'contact_name', 'Name']),
@@ -370,6 +372,7 @@ export default function Dashboard() {
         record={selectedRecord}
         open={!!selectedRecord}
         onClose={() => setSelectedRecord(null)}
+        fieldLabels={fieldLabels}
       />
     </div>
   );

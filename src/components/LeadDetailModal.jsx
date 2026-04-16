@@ -37,7 +37,7 @@ const Row = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-export default function LeadDetailModal({ record, open, onClose }) {
+export default function LeadDetailModal({ record, open, onClose, fieldLabels = {} }) {
   const [copied, setCopied] = useState(null);
 
   if (!record) return null;
@@ -116,10 +116,11 @@ export default function LeadDetailModal({ record, open, onClose }) {
             <div className="rounded-lg border border-border divide-y divide-border">
               {rawEntries.map(([key, val]) => {
                 const displayVal = formatValue(val);
+                const label = fieldLabels[key] || key;
                 return (
                   <div key={key} className="flex items-start justify-between gap-2 px-3 py-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-muted-foreground font-mono">{key}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
                       <p className="text-sm break-all">{displayVal}</p>
                     </div>
                     {displayVal !== '—' && (
