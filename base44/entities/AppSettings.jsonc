@@ -1,0 +1,34 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Unique settings key, e.g. 'main'"
+    },
+    "smartsuite_api_token": {
+      "type": "string"
+    },
+    "smartsuite_account_id": {
+      "type": "string"
+    },
+    "smartsuite_solution_id": {
+      "type": "string"
+    },
+    "smartsuite_table_id": {
+      "type": "string"
+    },
+    "zoho_access_token": {
+      "type": "string",
+      "description": "Zoho CRM API access token"
+    },
+    "zoho_api_domain": {
+      "type": "string",
+      "description": "Zoho CRM domain, e.g. https://www.zohoapis.com",
+      "default": "https://www.zohoapis.com"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}
