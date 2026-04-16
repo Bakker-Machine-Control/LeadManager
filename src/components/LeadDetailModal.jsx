@@ -16,13 +16,13 @@ const formatValue = (val) => {
   if (Array.isArray(val)) {
     if (val.length === 0) return '—';
     return val.map(v => {
-      if (typeof v === 'object' && v !== null) return v.phone_number || v.value || v.name || v.label || JSON.stringify(v);
+      if (typeof v === 'object' && v !== null) return v.title || v.phone_number || v.value || v.name || v.label || JSON.stringify(v);
       return String(v);
     }).join(', ');
   }
   if (typeof val === 'object') {
     if (val.date) return formatDate(val.date);
-    return val.value || val.name || val.label || JSON.stringify(val);
+    return val.title || val.value || val.name || val.label || JSON.stringify(val);
   }
   return String(val);
 };
