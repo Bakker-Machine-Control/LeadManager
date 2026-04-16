@@ -78,6 +78,7 @@ export default function Dashboard() {
         phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 'sc8d719ad3']),
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
+        lead_date: item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
       }));
       setRecords(mapped);
@@ -211,6 +212,7 @@ export default function Dashboard() {
                 <thead>
                   <tr className="bg-muted/50 border-y border-border text-muted-foreground text-xs uppercase tracking-wide">
                     <th className="px-4 py-2.5 text-left font-medium">Name</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Date</th>
                     <th className="px-4 py-2.5 text-left font-medium">Email</th>
                     <th className="px-4 py-2.5 text-left font-medium">Phone</th>
                     <th className="px-4 py-2.5 text-left font-medium">Company</th>

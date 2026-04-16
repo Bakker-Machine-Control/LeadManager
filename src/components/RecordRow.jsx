@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatusBadge from './StatusBadge';
 import { RefreshCw, CheckCircle2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 const SMARTSUITE_STATUSES = [
   'New', 'Contacted', 'Meeting Scheduled', 'Demo Done', 'Qualified', 'Not Interested',
@@ -29,6 +30,9 @@ export default function RecordRow({ record, onSync, onStatusSave, isSyncing }) {
           <p className="font-medium text-sm text-foreground">{record.name || '—'}</p>
           <p className="text-xs text-muted-foreground">{record.smartsuite_id}</p>
         </div>
+      </td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">
+        {record.lead_date ? (() => { try { return format(parseISO(record.lead_date), 'dd-MM-yyyy'); } catch { return record.lead_date; } })() : '—'}
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.email || '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.phone || '—'}</td>
