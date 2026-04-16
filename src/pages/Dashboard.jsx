@@ -84,13 +84,8 @@ export default function Dashboard() {
   };
 
   const doSync = useCallback(async (rec) => {
-    if (!settings?.zoho_access_token) {
-      toast({ title: 'Missing Zoho token', description: 'Add your Zoho access token in Settings.', variant: 'destructive' });
-      return;
-    }
     const res = await syncToZohoCRM({
-      zoho_access_token: settings.zoho_access_token,
-      zoho_api_domain: settings.zoho_api_domain,
+      zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
       leads: [rec],
     });
     const result = res.data?.results?.[0];

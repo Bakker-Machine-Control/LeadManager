@@ -115,14 +115,9 @@ export default function Activities() {
   }, []);
 
   const handleFetch = async () => {
-    if (!settings?.zoho_access_token) {
-      toast({ title: 'Missing Zoho token', description: 'Add your Zoho access token in Settings.', variant: 'destructive' });
-      return;
-    }
     setLoading(true);
     const res = await fetchZohoActivities({
-      zoho_access_token: settings.zoho_access_token,
-      zoho_api_domain: settings.zoho_api_domain,
+      zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
     });
     if (res.data?.error) {
       toast({ title: 'Fetch failed', description: res.data.error, variant: 'destructive' });
@@ -139,8 +134,7 @@ export default function Activities() {
     setUpdatingId(item.id);
     const module = item._type === 'Meeting' ? 'Meetings' : 'Tasks';
     const res = await updateZohoActivityStatus({
-      zoho_access_token: settings.zoho_access_token,
-      zoho_api_domain: settings.zoho_api_domain,
+      zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
       record_id: item.id,
       module,
       status: newStatus,

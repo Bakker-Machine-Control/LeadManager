@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2 } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, CheckCircle2 } from 'lucide-react';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -18,8 +18,7 @@ export default function Settings() {
     smartsuite_account_id: '',
     smartsuite_solution_id: '',
     smartsuite_table_id: '',
-    zoho_access_token: '',
-    zoho_api_domain: 'https://www.zohoapis.com',
+    zoho_api_domain: 'https://www.zohoapis.eu',
   });
 
   useEffect(() => {
@@ -32,8 +31,7 @@ export default function Settings() {
           smartsuite_account_id: s.smartsuite_account_id || '',
           smartsuite_solution_id: s.smartsuite_solution_id || '',
           smartsuite_table_id: s.smartsuite_table_id || '',
-          zoho_access_token: s.zoho_access_token || '',
-          zoho_api_domain: s.zoho_api_domain || 'https://www.zohoapis.com',
+          zoho_api_domain: s.zoho_api_domain || 'https://www.zohoapis.eu',
         });
       }
       setLoading(false);
@@ -109,12 +107,15 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Zoho CRM Configuration</CardTitle>
-          <CardDescription>Provide your Zoho CRM access token to sync leads and fetch activities</CardDescription>
+          <CardTitle className="text-base">Zoho CRM</CardTitle>
+          <CardDescription>Zoho authenticates automatisch via de opgeslagen secrets (Client ID, Client Secret, Refresh Token)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Field label="Access Token" name="zoho_access_token" placeholder="Zoho OAuth access token" secret />
-          <Field label="API Domain" name="zoho_api_domain" placeholder="https://www.zohoapis.com" />
+          <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Zoho secrets zijn geconfigureerd. Tokens worden automatisch vernieuwd.
+          </div>
+          <Field label="API Domain" name="zoho_api_domain" placeholder="https://www.zohoapis.eu" />
         </CardContent>
       </Card>
 
