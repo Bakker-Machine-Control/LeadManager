@@ -52,7 +52,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
 
   const distributor = record.raw_data ? Object.entries(record.raw_data).find(([k, v]) => {
     const label = (fieldLabels[k] || k).toLowerCase();
-    const labelMatch = label.includes('distrib') || label.includes('dealer') || label.includes('reseller') || label.includes('partner') || label.includes('leverancier');
+    const labelMatch = label.includes('distrib') || label.includes('dealer') || label.includes('reseller') || label.includes('partner') || label.includes('leverancier') || label.includes('manager');
     if (!labelMatch) return false;
     // Skip fields whose formatted value looks like a short internal code (no spaces, all lowercase, short)
     const formatted = formatValue(v);
