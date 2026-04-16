@@ -1,17 +1,36 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
-import { Mail, Phone, Building2, Calendar, CheckCircle2, AlertCircle, MinusCircle, Hash } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, CheckCircle2, AlertCircle, MinusCircle, Hash, Copy } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import { useState } from 'react';
 
 const formatDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
 };
 
+const formatValue = (val) => {
+  if (val === null || val === undefined || val === '') return '—';
+  if (typeof val === 'boolean') return val ? 'Ja' : 'Nee';
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '—';
+    return val.map(v => {
+      if (typeof v === 'object' && v !== null) return v.phone_number || v.value || v.name || v.label || JSON.stringify(v);
+      return String(v);
+    }).join(', ');
+  }
+  if (typeof val === 'object') {
+    if (val.date) return formatDate(val.date);
+    return val.value || val.name || val.label || JSON.stringify(val);
+  }
+  return String(val);
+};
+
+const SKIP_KEYS = ['id', 'application_id', 'application_slug'];
+
 const Row = ({ icon: Icon, label, value }) => (
-  <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
-    <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-    <div className="min-w-0">
+  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+    {Icon && <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />}
+    <div className="min-w-0 flex-1">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-sm font-medium break-all">{value || '—'}</p>
     </div>
@@ -19,17 +38,34 @@ const Row = ({ icon: Icon, label, value }) => (
 );
 
 export default function LeadDetailModal({ record, open, onClose }) {
+  const [copied, setCopied] = useState(null);
+
   if (!record) return null;
+
+  const handleCopy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 1500);
+  };
+
+  const rawData = record.raw_data || {};
+  const rawEntries = Object.entries(rawData).filter(([k, v]) => {
+    if (SKIP_KEYS.includes(k)) return false;
+    if (v === null || v === undefined || v === '') return false;
+    if (Array.isArray(v) && v.length === 0) return false;
+    return true;
+  });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg">{record.name || 'Onbekend'}</DialogTitle>
           <p className="text-xs text-muted-foreground font-mono">{record.smartsuite_id}</p>
         </DialogHeader>
 
-        <div className="space-y-1 mt-2">
+        {/* Snel overzicht */}
+        <div className="space-y-0 mt-2">
           <Row icon={Mail} label="Email" value={record.email} />
           <Row icon={Phone} label="Telefoon" value={record.phone} />
           <Row icon={Building2} label="Bedrijf" value={record.company} />
@@ -37,6 +73,7 @@ export default function LeadDetailModal({ record, open, onClose }) {
           <Row icon={Hash} label="SmartSuite status" value={record.smartsuite_status} />
         </div>
 
+        {/* Status badges */}
         <div className="flex gap-3 mt-3 flex-wrap">
           <div>
             <p className="text-xs text-muted-foreground mb-1">Sync status</p>
@@ -69,6 +106,35 @@ export default function LeadDetailModal({ record, open, onClose }) {
         {record.sync_error && (
           <div className="mt-2 text-xs text-destructive bg-destructive/10 rounded p-2">
             <strong>Fout:</strong> {record.sync_error}
+          </div>
+        )}
+
+        {/* Alle SmartSuite velden */}
+        {rawEntries.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alle SmartSuite velden</p>
+            <div className="rounded-lg border border-border divide-y divide-border">
+              {rawEntries.map(([key, val]) => {
+                const displayVal = formatValue(val);
+                return (
+                  <div key={key} className="flex items-start justify-between gap-2 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground font-mono">{key}</p>
+                      <p className="text-sm break-all">{displayVal}</p>
+                    </div>
+                    {displayVal !== '—' && (
+                      <button
+                        onClick={() => handleCopy(displayVal, key)}
+                        className="text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-0.5"
+                        title="Kopieer"
+                      >
+                        {copied === key ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </DialogContent>
