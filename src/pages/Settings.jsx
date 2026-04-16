@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, CheckCircle2 } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy } from 'lucide-react';
+import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -51,6 +52,24 @@ export default function Settings() {
   };
 
   const toggleShow = (field) => setShowTokens(p => ({ ...p, [field]: !p[field] }));
+
+  const [grantCode, setGrantCode] = useState('');
+  const [generatingToken, setGeneratingToken] = useState(false);
+  const [newRefreshToken, setNewRefreshToken] = useState('');
+
+  const handleGenerateToken = async () => {
+    if (!grantCode.trim()) return;
+    setGeneratingToken(true);
+    setNewRefreshToken('');
+    const res = await generateZohoRefreshToken({ grant_code: grantCode.trim() });
+    setGeneratingToken(false);
+    if (res.data?.refresh_token) {
+      setNewRefreshToken(res.data.refresh_token);
+      toast({ title: 'Refresh token ontvangen!', description: 'Kopieer de token hieronder en sla op in secrets.' });
+    } else {
+      toast({ title: 'Fout', description: JSON.stringify(res.data), variant: 'destructive' });
+    }
+  };
 
   const Field = ({ label, name, placeholder, secret }) => (
     <div className="space-y-2">
@@ -116,6 +135,40 @@ export default function Settings() {
             Zoho secrets zijn geconfigureerd. Tokens worden automatisch vernieuwd.
           </div>
           <Field label="API Domain" name="zoho_api_domain" placeholder="https://www.zohoapis.eu" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><Key className="w-4 h-4" /> Zoho Refresh Token genereren</CardTitle>
+          <CardDescription>
+            Genereer een nieuwe Grant Code via <a href="https://api-console.zoho.eu/" target="_blank" rel="noreferrer" className="underline text-primary">api-console.zoho.eu</a> → Self Client → Generate Code (scope: <code className="bg-muted px-1 rounded text-xs">ZohoCRM.modules.leads.ALL,ZohoCRM.modules.activities.ALL</code>), plak hem hieronder en klik Genereer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Grant Code (van Zoho Self Client)</Label>
+            <Input
+              placeholder="Plak hier de grant code..."
+              value={grantCode}
+              onChange={e => setGrantCode(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleGenerateToken} disabled={generatingToken || !grantCode.trim()} className="gap-2">
+            <Key className="w-4 h-4" />
+            {generatingToken ? 'Bezig…' : 'Genereer Refresh Token'}
+          </Button>
+          {newRefreshToken && (
+            <div className="space-y-2">
+              <Label>Nieuwe Refresh Token — kopieer en sla op als <code className="bg-muted px-1 rounded">ZOHO_REFRESH_TOKEN</code> secret</Label>
+              <div className="flex gap-2">
+                <Input value={newRefreshToken} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(newRefreshToken); toast({ title: 'Gekopieerd!' }); }}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
