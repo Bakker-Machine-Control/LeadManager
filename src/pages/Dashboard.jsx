@@ -55,14 +55,10 @@ export default function Dashboard() {
     base44.entities.AppSettings.filter({ key: 'main' }).then(s => {
       if (s.length > 0) setSettings(s[0]);
     });
-    // Load cached records from DB on page load
-    base44.entities.SyncedRecord.list('-lead_date', 500).then(existing => {
+    base44.entities.SyncedRecord.list('-created_date', 200).then(existing => {
       const map = {};
       existing.forEach(r => { map[r.smartsuite_id] = r; });
       setSyncStatuses(map);
-      if (existing.length > 0) {
-        setRecords(existing);
-      }
     });
   }, []);
 
@@ -100,21 +96,8 @@ export default function Dashboard() {
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
         raw_data: item,
       })).filter(r => r.phone && r.phone.startsWith('+31'));
-
-      // Upsert all fetched records into DB
-      const existingMap = { ...syncStatuses };
-      for (const r of mapped) {
-        const existing = existingMap[r.smartsuite_id];
-        if (existing?.id) {
-          await base44.entities.SyncedRecord.update(existing.id, r);
-        } else {
-          const created = await base44.entities.SyncedRecord.create(r);
-          existingMap[r.smartsuite_id] = created;
-        }
-      }
-      setSyncStatuses(existingMap);
       setRecords(mapped);
-      toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald en opgeslagen. Zoho check bezig…` });
+      toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald. Zoho check bezig…` });
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
 
       try {
@@ -126,21 +109,11 @@ export default function Dashboard() {
         if (dupRes.data?.results) {
           const dupMap = {};
           dupRes.data.results.forEach(r => { dupMap[r.smartsuite_id] = r; });
-          // Update records in state and persist zoho_exists/zoho_match to DB
           setRecords(prev => prev.map(r => ({
             ...r,
             zoho_exists: dupMap[r.smartsuite_id]?.exists_in_zoho ?? null,
             zoho_match: dupMap[r.smartsuite_id]?.matched_on || null,
           })));
-          for (const r of mapped) {
-            const dup = dupMap[r.smartsuite_id];
-            if (dup && existingMap[r.smartsuite_id]?.id) {
-              await base44.entities.SyncedRecord.update(existingMap[r.smartsuite_id].id, {
-                zoho_exists: dup.exists_in_zoho ?? null,
-                zoho_match: dup.matched_on || null,
-              });
-            }
-          }
           toast({ title: 'Klaar', description: `${mapped.length} records + Zoho check voltooid` });
         }
       } catch (_) {

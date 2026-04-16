@@ -5,10 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Truck, RefreshCw, Wand2 } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy } from 'lucide-react';
 import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
-import { syncDistributors } from '@/functions/syncDistributors';
-import { getSmartSuiteInfo } from '@/functions/getSmartSuiteInfo';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -54,60 +52,6 @@ export default function Settings() {
   };
 
   const toggleShow = (field) => setShowTokens(p => ({ ...p, [field]: !p[field] }));
-
-  const [syncingDistributors, setSyncingDistributors] = useState(false);
-  const [distributorCount, setDistributorCount] = useState(null);
-  const [distributors, setDistributors] = useState([]);
-
-  useEffect(() => {
-    base44.entities.Distributor.list('name', 200).then(setDistributors);
-  }, []);
-
-  const handleSyncDistributors = async () => {
-    if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
-      toast({ title: 'Vul eerst SmartSuite credentials in', variant: 'destructive' });
-      return;
-    }
-    setSyncingDistributors(true);
-    const res = await syncDistributors({
-      api_token: form.smartsuite_api_token,
-      account_id: form.smartsuite_account_id,
-    });
-    setSyncingDistributors(false);
-    if (res.data?.error) {
-      toast({ title: 'Fout', description: res.data.error, variant: 'destructive' });
-    } else {
-      setDistributorCount(res.data.count);
-      setDistributors(res.data.distributors || []);
-      toast({ title: 'Distributeurs gesynchroniseerd!', description: `${res.data.count} distributeurs opgehaald en opgeslagen.` });
-    }
-  };
-
-  const [detectingIds, setDetectingIds] = useState(false);
-
-  const handleDetectIds = async () => {
-    if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
-      toast({ title: 'Vul eerst je API token én Account ID in', variant: 'destructive' });
-      return;
-    }
-    setDetectingIds(true);
-    const res = await getSmartSuiteInfo({ api_token: form.smartsuite_api_token, account_id: form.smartsuite_account_id || 'skjergrg' });
-    setDetectingIds(false);
-    if (res.data?.error) {
-      toast({ title: 'Fout bij ophalen', description: res.data.error + (res.data.details ? ': ' + res.data.details.slice(0, 200) : ''), variant: 'destructive' });
-      return;
-    }
-    const solutions = res.data?.solutions || [];
-    if (solutions.length === 0) {
-      toast({ title: 'Geen solutions gevonden', variant: 'destructive' });
-      return;
-    }
-    // Show modal with solutions to pick from
-    setDetectedSolutions(solutions);
-    toast({ title: `${solutions.length} solution(s) gevonden`, description: 'Kies hieronder de juiste solution en tabel.' });
-  };
-
-  const [detectedSolutions, setDetectedSolutions] = useState([]);
 
   const [grantCode, setGrantCode] = useState('');
   const [generatingToken, setGeneratingToken] = useState(false);
@@ -174,42 +118,6 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="API Token" name="smartsuite_api_token" placeholder="Enter SmartSuite API token" secret />
-          <Button type="button" variant="outline" onClick={handleDetectIds} disabled={detectingIds} className="gap-2 w-full">
-            <Wand2 className={`w-4 h-4 ${detectingIds ? 'animate-spin' : ''}`} />
-            {detectingIds ? 'Ophalen…' : 'Detecteer Account / Solution / Table IDs automatisch'}
-          </Button>
-          {detectedSolutions.length > 0 && (
-            <div className="rounded-lg border border-border divide-y divide-border text-sm">
-              {detectedSolutions.map(sol => (
-                <div key={sol.id} className="p-3 space-y-2">
-                  <p className="font-medium">{sol.name} <span className="text-xs text-muted-foreground font-mono ml-1">{sol.id}</span></p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, smartsuite_solution_id: sol.id }))}>
-                      Gebruik als Solution ID
-                    </Button>
-                    {sol.account_id && (
-                      <Button size="sm" variant="secondary" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, smartsuite_account_id: sol.account_id }))}>
-                        Account ID: {sol.account_id}
-                      </Button>
-                    )}
-                  </div>
-                  {sol.applications && sol.applications.length > 0 && (
-                    <div className="pl-2 space-y-1">
-                      <p className="text-xs text-muted-foreground">Tabellen:</p>
-                      {sol.applications.map(app => (
-                        <div key={app.id} className="flex items-center gap-2">
-                          <span className="text-xs">{app.name}</span>
-                          <Button size="sm" variant="ghost" className="text-xs h-6 px-2" onClick={() => setForm(p => ({ ...p, smartsuite_table_id: app.id }))}>
-                            Gebruik als Table ID
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
           <Field label="Account ID" name="smartsuite_account_id" placeholder="e.g. abc123" />
           <Field label="Solution ID" name="smartsuite_solution_id" placeholder="e.g. sol_abc123" />
           <Field label="Table ID" name="smartsuite_table_id" placeholder="e.g. tbl_abc123" />
@@ -227,46 +135,6 @@ export default function Settings() {
             Zoho secrets zijn geconfigureerd. Tokens worden automatisch vernieuwd.
           </div>
           <Field label="API Domain" name="zoho_api_domain" placeholder="https://www.zohoapis.eu" />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Truck className="w-4 h-4" /> Distributeurs synchroniseren</CardTitle>
-          <CardDescription>Haal de lijst met distributeurs op uit SmartSuite en sla deze op in de app.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <Button onClick={handleSyncDistributors} disabled={syncingDistributors} variant="outline" className="gap-2">
-              <RefreshCw className={`w-4 h-4 ${syncingDistributors ? 'animate-spin' : ''}`} />
-              {syncingDistributors ? 'Ophalen…' : 'Synchroniseer distributeurs'}
-            </Button>
-            {distributorCount !== null && (
-              <span className="text-sm text-emerald-600 flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" /> {distributorCount} distributeurs opgeslagen
-              </span>
-            )}
-          </div>
-          {distributors.length > 0 && (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase tracking-wide">
-                    <th className="px-3 py-2 text-left font-medium">Naam</th>
-                    <th className="px-3 py-2 text-left font-medium">SmartSuite ID</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {distributors.map(d => (
-                    <tr key={d.smartsuite_id} className="hover:bg-muted/30">
-                      <td className="px-3 py-2 font-medium">{d.name}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{d.smartsuite_id}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </CardContent>
       </Card>
 
