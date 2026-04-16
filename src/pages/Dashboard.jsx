@@ -85,24 +85,30 @@ export default function Dashboard() {
       setRecords(mapped);
       toast({ title: 'Records loaded', description: `${mapped.length} records fetched. Zoho check bezig…` });
 
-      // Check duplicates in Zoho CRM
-      const leadsToCheck = mapped.map(r => ({ smartsuite_id: r.smartsuite_id, email: r.email, phone: r.phone }));
-      const dupRes = await checkZohoDuplicates({
-        zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
-        leads: leadsToCheck,
-      });
-      if (dupRes.data?.results) {
-        const dupMap = {};
-        dupRes.data.results.forEach(r => { dupMap[r.smartsuite_id] = r; });
-        setRecords(prev => prev.map(r => ({
-          ...r,
-          zoho_exists: dupMap[r.smartsuite_id]?.exists_in_zoho || false,
-          zoho_match: dupMap[r.smartsuite_id]?.matched_on || null,
-        })));
-      }
-
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
-      toast({ title: 'Records geladen', description: `${mapped.length} records + Zoho check klaar` });
+
+      // Check duplicates in Zoho CRM (non-blocking)
+      try {
+        const leadsToCheck = mapped.map(r => ({ smartsuite_id: r.smartsuite_id, email: r.email, phone: r.phone }));
+        const dupRes = await checkZohoDuplicates({
+          zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+          leads: leadsToCheck,
+        });
+        if (dupRes.data?.results) {
+          const dupMap = {};
+          dupRes.data.results.forEach(r => { dupMap[r.smartsuite_id] = r; });
+          setRecords(prev => prev.map(r => ({
+            ...r,
+            zoho_exists: dupMap[r.smartsuite_id]?.exists_in_zoho || false,
+            zoho_match: dupMap[r.smartsuite_id]?.matched_on || null,
+          })));
+          toast({ title: 'Records geladen', description: `${mapped.length} records + Zoho check klaar` });
+        } else {
+          toast({ title: 'Records geladen', description: `${mapped.length} records fetched` });
+        }
+      } catch (dupErr) {
+        toast({ title: 'Records geladen', description: `${mapped.length} records fetched (Zoho check mislukt)`, variant: 'destructive' });
+      }
     }
     setFetching(false);
   };

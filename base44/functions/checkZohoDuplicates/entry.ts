@@ -16,15 +16,16 @@ async function getZohoToken() {
   return data.access_token;
 }
 
-async function searchLeads(domain, accessToken, field, value) {
-  if (!value) return null;
-  const url = `${domain}/crm/v2/Leads/search?criteria=(${field}:equals:${encodeURIComponent(value)})`;
+// Search Zoho Leads by a single field value, returns array of matches
+async function searchZoho(domain, accessToken, field, value) {
+  if (!value || value.trim() === '') return [];
+  const url = `${domain}/crm/v2/Leads/search?criteria=(${field}:equals:${encodeURIComponent(value.trim())})&fields=id,First_Name,Last_Name,Email,Phone`;
   const resp = await fetch(url, {
     headers: { 'Authorization': `Zoho-oauthtoken ${accessToken}` },
   });
-  if (!resp.ok) return null;
+  if (!resp.ok) return [];
   const data = await resp.json();
-  return data.data?.[0] || null;
+  return data.data || [];
 }
 
 Deno.serve(async (req) => {
@@ -35,28 +36,52 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { leads, zoho_api_domain } = body;
+
+    if (!leads || leads.length === 0) {
+      return Response.json({ results: [] });
+    }
+
     const domain = zoho_api_domain || 'https://www.zohoapis.eu';
     const accessToken = await getZohoToken();
 
-    const results = [];
-    for (const lead of leads) {
-      // Check by email first, then by phone
+    // Collect unique emails and phones to search for
+    const emails = [...new Set(leads.map(l => l.email).filter(Boolean))];
+    const phones = [...new Set(leads.map(l => l.phone).filter(Boolean))];
+
+    // Fetch all matches in parallel (one call per unique value)
+    const [emailResults, phoneResults] = await Promise.all([
+      Promise.all(emails.map(e => searchZoho(domain, accessToken, 'Email', e).then(hits => hits.map(h => ({ ...h, _matched_email: e }))))),
+      Promise.all(phones.map(p => searchZoho(domain, accessToken, 'Phone', p).then(hits => hits.map(h => ({ ...h, _matched_phone: p }))))),
+    ]);
+
+    // Build lookup maps: email -> zoho record, phone -> zoho record
+    const emailMap = {};
+    emailResults.flat().forEach(h => { emailMap[h._matched_email.toLowerCase()] = h; });
+    const phoneMap = {};
+    phoneResults.flat().forEach(h => { phoneMap[h._matched_phone] = h; });
+
+    // Match each lead
+    const results = leads.map(lead => {
       let match = null;
+      let matchedOn = null;
+
       if (lead.email) {
-        match = await searchLeads(domain, accessToken, 'Email', lead.email);
+        match = emailMap[lead.email.toLowerCase()] || null;
+        if (match) matchedOn = 'email';
       }
       if (!match && lead.phone) {
-        match = await searchLeads(domain, accessToken, 'Phone', lead.phone);
+        match = phoneMap[lead.phone] || null;
+        if (match) matchedOn = 'phone';
       }
 
-      results.push({
+      return {
         smartsuite_id: lead.smartsuite_id,
         exists_in_zoho: !!match,
         zoho_id: match?.id || null,
         zoho_name: match ? `${match.First_Name || ''} ${match.Last_Name || ''}`.trim() : null,
-        matched_on: match ? (lead.email && match.Email === lead.email ? 'email' : 'phone') : null,
-      });
-    }
+        matched_on: matchedOn,
+      };
+    });
 
     return Response.json({ results });
   } catch (error) {
