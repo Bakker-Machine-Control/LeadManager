@@ -16,6 +16,12 @@ async function getZohoToken() {
   return data.access_token;
 }
 
+// Normalize phone: strip spaces, dashes, dots — keep leading +
+function normalizePhone(phone) {
+  if (!phone) return '';
+  return phone.replace(/[\s\-\.\(\)]/g, '');
+}
+
 // Search Zoho Leads by a single field value, returns array of matches
 async function searchZoho(domain, accessToken, field, value) {
   if (!value || value.trim() === '') return [];
@@ -55,19 +61,26 @@ Deno.serve(async (req) => {
 
     // Collect unique emails and phones to search for
     const emails = [...new Set(leads.map(l => l.email).filter(Boolean))];
-    const phones = [...new Set(leads.map(l => l.phone).filter(Boolean))];
+    // Search both original and normalized phone variants
+    const phoneVariants = [...new Set(
+      leads.flatMap(l => l.phone ? [l.phone, normalizePhone(l.phone)] : []).filter(Boolean)
+    )];
 
     // Fetch all matches in parallel (one call per unique value)
     const [emailResults, phoneResults] = await Promise.all([
       Promise.all(emails.map(e => searchZoho(domain, accessToken, 'Email', e).then(hits => hits.map(h => ({ ...h, _matched_email: e }))))),
-      Promise.all(phones.map(p => searchZoho(domain, accessToken, 'Phone', p).then(hits => hits.map(h => ({ ...h, _matched_phone: p }))))),
+      Promise.all(phoneVariants.map(p => searchZoho(domain, accessToken, 'Phone', p).then(hits => hits.map(h => ({ ...h, _matched_phone: p }))))),
     ]);
 
-    // Build lookup maps: email -> zoho record, phone -> zoho record
+    // Build lookup maps: email -> zoho record, phone (normalized) -> zoho record
     const emailMap = {};
     emailResults.flat().forEach(h => { emailMap[h._matched_email.toLowerCase()] = h; });
     const phoneMap = {};
-    phoneResults.flat().forEach(h => { phoneMap[h._matched_phone] = h; });
+    phoneResults.flat().forEach(h => {
+      phoneMap[h._matched_phone] = h;
+      // Also index by normalizing the Zoho phone for reverse lookup
+      if (h.Phone) phoneMap[normalizePhone(h.Phone)] = h;
+    });
 
     // Match each lead
     const results = leads.map(lead => {
@@ -79,7 +92,8 @@ Deno.serve(async (req) => {
         if (match) matchedOn = 'email';
       }
       if (!match && lead.phone) {
-        match = phoneMap[lead.phone] || null;
+        // Try original phone, then normalized
+        match = phoneMap[lead.phone] || phoneMap[normalizePhone(lead.phone)] || null;
         if (match) matchedOn = 'phone';
       }
 
