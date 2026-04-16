@@ -54,11 +54,17 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
     const label = (fieldLabels[k] || k).toLowerCase();
     const labelMatch = label === 'distributor' || label === 'leverancier' || label.startsWith('distrib');
     if (!labelMatch) return false;
-    // Skip fields whose formatted value looks like a short internal code (no spaces, all lowercase, short)
     const formatted = formatValue(v);
     if (formatted === '—') return false;
     return formatted.length > 2;
   }) : null;
+
+  const distributorName = distributor ? (() => {
+    const val = distributor[1];
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object' && val?.name) return val.name;
+    return formatValue(val);
+  })() : null;
 
   const handleSaveNotes = async () => {
     setSavingNotes(true);
@@ -93,7 +99,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
         {/* Snel overzicht */}
         <div className="space-y-0 mt-2">
           {distributor && (
-            <Row icon={Truck} label={fieldLabels[distributor[0]] || 'Distributor'} value={formatValue(distributor[1])} />
+            <Row icon={Truck} label={fieldLabels[distributor[0]] || 'Distributor'} value={distributorName} />
           )}
           <Row icon={Mail} label="Email" value={record.email} />
           <Row icon={Phone} label="Telefoon" value={record.phone} />
