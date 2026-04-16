@@ -6,6 +6,9 @@
       "type": "string",
       "description": "The record ID from SmartSuite"
     },
+    "name": {
+      "type": "string"
+    },
     "first_name": {
       "type": "string"
     },
@@ -19,6 +22,18 @@
       "type": "string"
     },
     "company": {
+      "type": "string"
+    },
+    "lead_date": {
+      "type": "string"
+    },
+    "smartsuite_status": {
+      "type": "string"
+    },
+    "zoho_exists": {
+      "type": "boolean"
+    },
+    "zoho_match": {
       "type": "string"
     },
     "sync_status": {
