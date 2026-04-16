@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { fetchSmartSuiteRecords } from '@/functions/fetchSmartSuiteRecords';
 import { syncToZohoCRM } from '@/functions/syncToZohoCRM';
 import { updateSmartSuiteStatus } from '@/functions/updateSmartSuiteStatus';
+import { checkZohoDuplicates } from '@/functions/checkZohoDuplicates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
@@ -82,8 +83,26 @@ export default function Dashboard() {
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
       }));
       setRecords(mapped);
+      toast({ title: 'Records loaded', description: `${mapped.length} records fetched. Zoho check bezig…` });
+
+      // Check duplicates in Zoho CRM
+      const leadsToCheck = mapped.map(r => ({ smartsuite_id: r.smartsuite_id, email: r.email, phone: r.phone }));
+      const dupRes = await checkZohoDuplicates({
+        zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+        leads: leadsToCheck,
+      });
+      if (dupRes.data?.results) {
+        const dupMap = {};
+        dupRes.data.results.forEach(r => { dupMap[r.smartsuite_id] = r; });
+        setRecords(prev => prev.map(r => ({
+          ...r,
+          zoho_exists: dupMap[r.smartsuite_id]?.exists_in_zoho || false,
+          zoho_match: dupMap[r.smartsuite_id]?.matched_on || null,
+        })));
+      }
+
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
-      toast({ title: 'Records loaded', description: `${mapped.length} records fetched` });
+      toast({ title: 'Records geladen', description: `${mapped.length} records + Zoho check klaar` });
     }
     setFetching(false);
   };
@@ -216,6 +235,7 @@ export default function Dashboard() {
                     <th className="px-4 py-2.5 text-left font-medium">Email</th>
                     <th className="px-4 py-2.5 text-left font-medium">Phone</th>
                     <th className="px-4 py-2.5 text-left font-medium">Company</th>
+                    <th className="px-4 py-2.5 text-left font-medium">In Zoho?</th>
                     <th className="px-4 py-2.5 text-left font-medium">Sync Status</th>
                     <th className="px-4 py-2.5 text-left font-medium">SmartSuite Status</th>
                     <th className="px-4 py-2.5 text-left font-medium">Actions</th>

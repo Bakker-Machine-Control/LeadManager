@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatusBadge from './StatusBadge';
-import { RefreshCw, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, MinusCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SMARTSUITE_STATUSES = [
@@ -37,6 +37,24 @@ export default function RecordRow({ record, onSync, onStatusSave, isSyncing }) {
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.email || '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.phone || '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.company || '—'}</td>
+      <td className="px-4 py-3">
+        {record.zoho_exists === true ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+            <AlertCircle className="w-3 h-3" />
+            Bestaat ({record.zoho_match})
+          </span>
+        ) : record.zoho_exists === false ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+            <CheckCircle2 className="w-3 h-3" />
+            Nieuw
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <MinusCircle className="w-3 h-3" />
+            —
+          </span>
+        )}
+      </td>
       <td className="px-4 py-3">
         <StatusBadge status={record.sync_status || 'pending'} />
       </td>
