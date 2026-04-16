@@ -36,9 +36,15 @@ Deno.serve(async (req) => {
     const items = data.items || [];
 
     // Each record: id = internal SmartSuite ID, title field = name
+    // Log first item to inspect structure
+    if (items.length > 0) console.log('First distributor record keys:', JSON.stringify(Object.keys(items[0])));
+    if (items.length > 0) console.log('First distributor record:', JSON.stringify(items[0]));
+
     const distributors = items.map(item => ({
       smartsuite_id: item.id,
-      name: item.title || item.name || Object.values(item).find(v => typeof v === 'string' && v.length > 1) || item.id,
+      name: item.title || item.name ||
+        Object.entries(item).find(([k, v]) => typeof v === 'string' && v.length > 2 && k !== 'id' && k !== 'application_id' && k !== 'application_slug')?.[1] ||
+        item.id,
     })).filter(d => d.name);
 
     // Clear existing and re-insert
