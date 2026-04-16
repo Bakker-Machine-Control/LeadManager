@@ -12,13 +12,18 @@ import SyncLogPanel from '@/components/SyncLogPanel';
 
 function extractField(record, slugs) {
   for (const slug of slugs) {
-    if (record[slug] !== undefined && record[slug] !== null && record[slug] !== '') {
-      const val = record[slug];
-      if (typeof val === 'object' && val !== null) {
-        return val.value || val.name || val.label || JSON.stringify(val);
-      }
-      return String(val);
+    const val = record[slug];
+    if (val === undefined || val === null || val === '') continue;
+    if (Array.isArray(val)) {
+      const first = val[0];
+      if (!first) continue;
+      if (typeof first === 'string') return first;
+      return first.phone_number || first.value || first.name || String(first);
     }
+    if (typeof val === 'object') {
+      return val.value || val.name || val.label || '';
+    }
+    return String(val);
   }
   return '';
 }
@@ -69,11 +74,10 @@ export default function Dashboard() {
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
         name: extractField(item, ['title', 'name', 'full_name', 'contact_name', 'Name']),
-        email: extractField(item, ['email', 'email_address', 'contact_email', 'Email']),
-        phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone']),
-        company: extractField(item, ['company', 'company_name', 'organization', 'Company']),
+        email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9']),
+        phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 'sc8d719ad3']),
+        company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
-        raw_data: item,
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
       }));
       setRecords(mapped);
@@ -84,9 +88,10 @@ export default function Dashboard() {
   };
 
   const doSync = useCallback(async (rec) => {
+    const { sync_status, smartsuite_status, ...leadData } = rec;
     const res = await syncToZohoCRM({
       zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
-      leads: [rec],
+      leads: [leadData],
     });
     const result = res.data?.results?.[0];
     const success = result?.success;
