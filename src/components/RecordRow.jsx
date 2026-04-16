@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatusBadge from './StatusBadge';
-import { RefreshCw, CheckCircle2, AlertCircle, MinusCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, MinusCircle, Eye } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SMARTSUITE_STATUSES = [
   'New', 'Contacted', 'Meeting Scheduled', 'Demo Done', 'Qualified', 'Not Interested',
 ];
 
-export default function RecordRow({ record, onSync, onStatusSave, isSyncing }) {
+export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, isSyncing }) {
   const [selectedStatus, setSelectedStatus] = useState(record.smartsuite_status || '');
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
@@ -87,15 +87,25 @@ export default function RecordRow({ record, onSync, onStatusSave, isSyncing }) {
         </div>
       </td>
       <td className="px-4 py-3">
-        <Button
-          size="sm"
-          onClick={() => onSync(record)}
-          disabled={isSyncing}
-          className="h-8 text-xs gap-1"
-        >
-          {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
-          Sync to Zoho
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewDetail(record)}
+            className="h-8 text-xs gap-1"
+          >
+            <Eye className="w-3 h-3" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => onSync(record)}
+            disabled={isSyncing}
+            className="h-8 text-xs gap-1"
+          >
+            {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
+            Sync
+          </Button>
+        </div>
       </td>
     </tr>
   );
