@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Truck, RefreshCw } from 'lucide-react';
 import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
+import { syncDistributors } from '@/functions/syncDistributors';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -52,6 +53,28 @@ export default function Settings() {
   };
 
   const toggleShow = (field) => setShowTokens(p => ({ ...p, [field]: !p[field] }));
+
+  const [syncingDistributors, setSyncingDistributors] = useState(false);
+  const [distributorCount, setDistributorCount] = useState(null);
+
+  const handleSyncDistributors = async () => {
+    if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
+      toast({ title: 'Vul eerst SmartSuite credentials in', variant: 'destructive' });
+      return;
+    }
+    setSyncingDistributors(true);
+    const res = await syncDistributors({
+      api_token: form.smartsuite_api_token,
+      account_id: form.smartsuite_account_id,
+    });
+    setSyncingDistributors(false);
+    if (res.data?.error) {
+      toast({ title: 'Fout', description: res.data.error, variant: 'destructive' });
+    } else {
+      setDistributorCount(res.data.count);
+      toast({ title: 'Distributeurs gesynchroniseerd!', description: `${res.data.count} distributeurs opgehaald en opgeslagen.` });
+    }
+  };
 
   const [grantCode, setGrantCode] = useState('');
   const [generatingToken, setGeneratingToken] = useState(false);
@@ -135,6 +158,26 @@ export default function Settings() {
             Zoho secrets zijn geconfigureerd. Tokens worden automatisch vernieuwd.
           </div>
           <Field label="API Domain" name="zoho_api_domain" placeholder="https://www.zohoapis.eu" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><Truck className="w-4 h-4" /> Distributeurs synchroniseren</CardTitle>
+          <CardDescription>Haal de lijst met distributeurs op uit SmartSuite en sla deze op in de app.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleSyncDistributors} disabled={syncingDistributors} variant="outline" className="gap-2">
+              <RefreshCw className={`w-4 h-4 ${syncingDistributors ? 'animate-spin' : ''}`} />
+              {syncingDistributors ? 'Ophalen…' : 'Synchroniseer distributeurs'}
+            </Button>
+            {distributorCount !== null && (
+              <span className="text-sm text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4" /> {distributorCount} distributeurs opgeslagen
+              </span>
+            )}
+          </div>
         </CardContent>
       </Card>
 
