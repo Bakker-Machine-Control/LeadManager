@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Search } from 'lucide-react';
 import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
+import { discoverSmartSuiteTableIds } from '@/functions/discoverSmartSuiteTableIds';
+import { Search } from 'lucide-react';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -56,6 +58,7 @@ export default function Settings() {
   const [grantCode, setGrantCode] = useState('');
   const [generatingToken, setGeneratingToken] = useState(false);
   const [newRefreshToken, setNewRefreshToken] = useState('');
+  const [discovering, setDiscovering] = useState(false);
 
   const handleGenerateToken = async () => {
     if (!grantCode.trim()) return;
@@ -68,6 +71,25 @@ export default function Settings() {
       toast({ title: 'Refresh token ontvangen!', description: 'Kopieer de token hieronder en sla op in secrets.' });
     } else {
       toast({ title: 'Fout', description: JSON.stringify(res.data), variant: 'destructive' });
+    }
+  };
+
+  const handleDiscover = async () => {
+    if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
+      toast({ title: 'Fout', description: 'Vul eerst API Token en Account ID in', variant: 'destructive' });
+      return;
+    }
+    setDiscovering(true);
+    const res = await discoverSmartSuiteTableIds({
+      api_token: form.smartsuite_api_token,
+      account_id: form.smartsuite_account_id,
+    });
+    setDiscovering(false);
+    if (res.data?.solution_id) {
+      setForm(p => ({ ...p, smartsuite_solution_id: res.data.solution_id, smartsuite_table_id: res.data.table_id }));
+      toast({ title: 'Gevonden!', description: `Solution: ${res.data.solution_id}\nTable: ${res.data.table_id}` });
+    } else {
+      toast({ title: 'Niet gevonden', description: res.data?.error || 'Lead Bridge tabel niet gevonden', variant: 'destructive' });
     }
   };
 
@@ -118,7 +140,13 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="API Token" name="smartsuite_api_token" placeholder="Enter SmartSuite API token" secret />
-          <Field label="Account ID" name="smartsuite_account_id" placeholder="e.g. abc123" />
+          <Field label="Account ID" name="smartsuite_account_id" placeholder="e.g. skjergrg" />
+          <div className="flex gap-2">
+            <Button onClick={handleDiscover} disabled={discovering || !form.smartsuite_api_token || !form.smartsuite_account_id} className="gap-2" variant="outline">
+              <Search className="w-4 h-4" />
+              {discovering ? 'Zoeken…' : 'Find Lead Bridge'}
+            </Button>
+          </div>
           <Field label="Solution ID" name="smartsuite_solution_id" placeholder="e.g. sol_abc123" />
           <Field label="Table ID" name="smartsuite_table_id" placeholder="e.g. tbl_abc123" />
         </CardContent>
