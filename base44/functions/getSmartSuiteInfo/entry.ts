@@ -7,18 +7,19 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { api_token } = body;
+    const { api_token, account_id } = body;
 
-    if (!api_token) {
-      return Response.json({ error: 'Missing api_token' }, { status: 400 });
+    if (!api_token || !account_id) {
+      return Response.json({ error: 'Missing api_token or account_id' }, { status: 400 });
     }
 
     const headers = {
       'Authorization': `Token ${api_token}`,
+      'ACCOUNT-ID': account_id,
       'Content-Type': 'application/json',
     };
 
-    // Fetch solutions list (no account ID needed for this endpoint)
+    // Fetch solutions list
     const resp = await fetch('https://app.smartsuite.com/api/v1/solutions/', {
       method: 'GET',
       headers,
@@ -37,10 +38,7 @@ Deno.serve(async (req) => {
       try {
         const appsResp = await fetch(`https://app.smartsuite.com/api/v1/applications/?solution=${sol.id}`, {
           method: 'GET',
-          headers: {
-            ...headers,
-            'ACCOUNT-ID': sol.account_id || '',
-          },
+          headers,
         });
         if (appsResp.ok) {
           const apps = await appsResp.json();

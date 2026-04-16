@@ -86,12 +86,12 @@ export default function Settings() {
   const [detectingIds, setDetectingIds] = useState(false);
 
   const handleDetectIds = async () => {
-    if (!form.smartsuite_api_token) {
-      toast({ title: 'Vul eerst je API token in', variant: 'destructive' });
+    if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
+      toast({ title: 'Vul eerst je API token én Account ID in', variant: 'destructive' });
       return;
     }
     setDetectingIds(true);
-    const res = await getSmartSuiteInfo({ api_token: form.smartsuite_api_token });
+    const res = await getSmartSuiteInfo({ api_token: form.smartsuite_api_token, account_id: form.smartsuite_account_id || 'skjergrg' });
     setDetectingIds(false);
     if (res.data?.error) {
       toast({ title: 'Fout bij ophalen', description: res.data.error + (res.data.details ? ': ' + res.data.details.slice(0, 200) : ''), variant: 'destructive' });
