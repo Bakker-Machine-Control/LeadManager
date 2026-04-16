@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required SmartSuite credentials' }, { status: 400 });
     }
 
-    const url = `https://app.smartsuite.com/api/v1/applications/${solution_id}/records/list/`;
+    const url = `https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
