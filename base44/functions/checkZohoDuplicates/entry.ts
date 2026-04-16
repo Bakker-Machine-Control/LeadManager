@@ -23,9 +23,14 @@ async function searchZoho(domain, accessToken, field, value) {
   const resp = await fetch(url, {
     headers: { 'Authorization': `Zoho-oauthtoken ${accessToken}` },
   });
-  if (!resp.ok) return [];
-  const data = await resp.json();
-  return data.data || [];
+  const text = await resp.text();
+  if (!resp.ok || !text) return [];
+  try {
+    const data = JSON.parse(text);
+    return data.data || [];
+  } catch (_) {
+    return [];
+  }
 }
 
 Deno.serve(async (req) => {
@@ -34,7 +39,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    let body = {};
+    try {
+      const text = await req.text();
+      if (text) body = JSON.parse(text);
+    } catch (_) {}
     const { leads, zoho_api_domain } = body;
 
     if (!leads || leads.length === 0) {
