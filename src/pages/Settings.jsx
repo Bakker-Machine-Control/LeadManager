@@ -56,6 +56,11 @@ export default function Settings() {
 
   const [syncingDistributors, setSyncingDistributors] = useState(false);
   const [distributorCount, setDistributorCount] = useState(null);
+  const [distributors, setDistributors] = useState([]);
+
+  useEffect(() => {
+    base44.entities.Distributor.list('name', 200).then(setDistributors);
+  }, []);
 
   const handleSyncDistributors = async () => {
     if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
@@ -72,6 +77,7 @@ export default function Settings() {
       toast({ title: 'Fout', description: res.data.error, variant: 'destructive' });
     } else {
       setDistributorCount(res.data.count);
+      setDistributors(res.data.distributors || []);
       toast({ title: 'Distributeurs gesynchroniseerd!', description: `${res.data.count} distributeurs opgehaald en opgeslagen.` });
     }
   };
@@ -167,7 +173,7 @@ export default function Settings() {
           <CardDescription>Haal de lijst met distributeurs op uit SmartSuite en sla deze op in de app.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <Button onClick={handleSyncDistributors} disabled={syncingDistributors} variant="outline" className="gap-2">
               <RefreshCw className={`w-4 h-4 ${syncingDistributors ? 'animate-spin' : ''}`} />
               {syncingDistributors ? 'Ophalen…' : 'Synchroniseer distributeurs'}
@@ -178,6 +184,26 @@ export default function Settings() {
               </span>
             )}
           </div>
+          {distributors.length > 0 && (
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase tracking-wide">
+                    <th className="px-3 py-2 text-left font-medium">Naam</th>
+                    <th className="px-3 py-2 text-left font-medium">SmartSuite ID</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {distributors.map(d => (
+                    <tr key={d.smartsuite_id} className="hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium">{d.name}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{d.smartsuite_id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
