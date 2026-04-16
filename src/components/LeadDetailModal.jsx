@@ -50,9 +50,15 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
 
   if (!record) return null;
 
-  const distributor = record.raw_data ? Object.entries(record.raw_data).find(([k]) => {
+  const distributor = record.raw_data ? Object.entries(record.raw_data).find(([k, v]) => {
     const label = (fieldLabels[k] || k).toLowerCase();
-    return label.includes('distributor') || label.includes('dealer') || label.includes('reseller');
+    const labelMatch = label.includes('distrib') || label.includes('dealer') || label.includes('reseller') || label.includes('partner') || label.includes('leverancier');
+    if (!labelMatch) return false;
+    // Skip fields whose formatted value looks like a short internal code (no spaces, all lowercase, short)
+    const formatted = formatValue(v);
+    if (formatted === '—') return false;
+    // Prefer fields whose value looks like a real company name (contains uppercase or space or longer than 6 chars)
+    return formatted.length > 4 && (formatted.includes(' ') || /[A-Z]/.test(formatted));
   }) : null;
 
   const handleSaveNotes = async () => {
