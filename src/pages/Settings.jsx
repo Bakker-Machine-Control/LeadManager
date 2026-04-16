@@ -8,7 +8,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Search } from 'lucide-react';
 import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
 import { discoverSmartSuiteTableIds } from '@/functions/discoverSmartSuiteTableIds';
-import { Search } from 'lucide-react';
 
 export default function Settings() {
   const { toast } = useToast();
