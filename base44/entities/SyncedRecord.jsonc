@@ -1,0 +1,53 @@
+{
+  "name": "SyncedRecord",
+  "type": "object",
+  "properties": {
+    "smartsuite_id": {
+      "type": "string",
+      "description": "The record ID from SmartSuite"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "company": {
+      "type": "string"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "synced",
+        "error"
+      ],
+      "default": "pending"
+    },
+    "sync_error": {
+      "type": "string",
+      "description": "Error message if sync failed"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "zoho_lead_id": {
+      "type": "string",
+      "description": "The lead ID in Zoho CRM after sync"
+    },
+    "raw_data": {
+      "type": "object",
+      "description": "Raw record data from SmartSuite"
+    }
+  },
+  "required": [
+    "smartsuite_id"
+  ]
+}

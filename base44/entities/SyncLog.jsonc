@@ -1,0 +1,37 @@
+{
+  "name": "SyncLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "fetch",
+        "sync",
+        "sync_all"
+      ],
+      "description": "What action was performed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error",
+        "partial"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "records_affected": {
+      "type": "number"
+    },
+    "details": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "action",
+    "status",
+    "message"
+  ]
+}
