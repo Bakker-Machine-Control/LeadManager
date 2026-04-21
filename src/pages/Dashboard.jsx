@@ -14,28 +14,39 @@ import RecordRow from '@/components/RecordRow';
 import SyncLogPanel from '@/components/SyncLogPanel';
 import LeadDetailModal from '@/components/LeadDetailModal';
 
+function extractFieldValue(val) {
+  if (val === undefined || val === null || val === '') return '';
+  if (Array.isArray(val)) {
+    const first = val[0];
+    if (!first) return '';
+    if (typeof first === 'string') return first;
+    return first.phone_number || first.value || first.name || String(first);
+  }
+  if (typeof val === 'object') {
+    if (val.location_city) return val.location_city;
+    if (val.sys_root) return val.sys_root.replace(/,\s*[\w\s]+$/, '').trim();
+    if (val.date) return val.date;
+    return val.value || val.name || val.label || '';
+  }
+  return String(val);
+}
+
 function extractField(record, slugs) {
   for (const slug of slugs) {
     const val = record[slug];
     if (val === undefined || val === null || val === '') continue;
-    if (Array.isArray(val)) {
-      const first = val[0];
-      if (!first) continue;
-      if (typeof first === 'string') return first;
-      return first.phone_number || first.value || first.name || String(first);
-    }
-    if (typeof val === 'object') {
-      // For location fields: prefer location_city, fallback to sys_root (e.g. "De Rijp, Netherlands")
-      if (val.location_city) return val.location_city;
-      if (val.sys_root) {
-        // Strip country suffix if present (e.g. "De Rijp, Netherlands" -> "De Rijp")
-        return val.sys_root.replace(/,\s*\w+$/, '').trim();
-      }
-      return val.value || val.name || val.label || '';
-    }
-    return String(val);
+    const extracted = extractFieldValue(val);
+    if (extracted) return extracted;
   }
   return '';
+}
+
+// Find slug by matching label keywords
+function findSlugByLabel(fieldLabels, keywords) {
+  const entry = Object.entries(fieldLabels).find(([, label]) =>
+    keywords.some(kw => label.toLowerCase().includes(kw.toLowerCase()))
+  );
+  return entry ? entry[0] : null;
 }
 
 export default function Dashboard() {
@@ -105,30 +116,28 @@ export default function Dashboard() {
       await logAction('fetch', 'error', res.data.error, 0);
     } else {
       const items = res.data?.items || [];
-      if (res.data?.fieldLabels) setFieldLabels(res.data.fieldLabels);
-      // Find city slug by label
-      const citySlug = res.data?.fieldLabels
-        ? Object.entries(res.data.fieldLabels).find(([, label]) =>
-            ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location'].includes(label.toLowerCase())
-          )?.[0]
-        : null;
+      const fl = res.data?.fieldLabels || {};
+      if (res.data?.fieldLabels) setFieldLabels(fl);
 
-      // Find date slug by label
-      const dateSlug = res.data?.fieldLabels
-        ? Object.entries(res.data.fieldLabels).find(([, label]) =>
-            ['date', 'datum', 'lead date', 'created', 'aangemaakt', 'submission date', 'inzendingsdatum', 'ontvangen'].includes(label.toLowerCase())
-          )?.[0]
-        : null;
+      // Dynamically find slugs by label keywords
+      const citySlug = findSlugByLabel(fl, ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location', 'plaats']);
+      const dateSlug = findSlugByLabel(fl, ['date', 'datum', 'lead date', 'created', 'aangemaakt', 'submission', 'inzending', 'ontvangen']);
+      const emailSlug = findSlugByLabel(fl, ['email', 'e-mail', 'emailadres', 'mail']);
+      const phoneSlug = findSlugByLabel(fl, ['phone', 'telefoon', 'mobile', 'mobiel', 'gsm', 'tel']);
+      const companySlug = findSlugByLabel(fl, ['company', 'bedrijf', 'organization', 'organisatie', 'firma']);
+      const nameSlug = findSlugByLabel(fl, ['name', 'naam', 'full name', 'contact name', 'voornaam']);
+
+      console.log('Detected slugs:', { nameSlug, emailSlug, phoneSlug, companySlug, citySlug, dateSlug });
 
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
-        name: extractField(item, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']),
-        email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9', 'sf99925cfb', 's19d20e4c1']),
-        phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 's0c5029009', 's2fc4c481d', 'sc8d719ad3']),
-        company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b', 'sfbbd03935']),
-        city: extractField(item, [...(citySlug ? [citySlug] : []), 's778b5be05', 'city', 'place', 'stad', 'City', 'gemeente', 'location', 'woonplaats']),
+        name: extractField(item, [...(nameSlug ? [nameSlug] : []), 's3430826e2', 'title', 'name', 'full_name', 'contact_name']),
+        email: extractField(item, [...(emailSlug ? [emailSlug] : []), 's19d20e4c1', 's6299218c9', 'sf99925cfb', 'email', 'email_address']),
+        phone: extractField(item, [...(phoneSlug ? [phoneSlug] : []), 'sc8d719ad3', 's0c5029009', 's2fc4c481d', 'phone', 'phone_number', 'mobile']),
+        company: extractField(item, [...(companySlug ? [companySlug] : []), 'sfbbd03935', 's18939601b', 'company', 'company_name', 'organization']),
+        city: extractField(item, [...(citySlug ? [citySlug] : []), 's778b5be05', 'city', 'stad', 'woonplaats', 'location']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
-        lead_date: (dateSlug ? (item[dateSlug]?.date || item[dateSlug]) : null) || item.s9642641d7?.date || item.first_created?.on || '',
+        lead_date: (dateSlug ? extractFieldValue(item[dateSlug]) : '') || item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
         raw_data: item,
       })).filter(r => r.phone && r.phone.startsWith('+31'));

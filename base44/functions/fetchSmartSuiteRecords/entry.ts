@@ -49,7 +49,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ items: data.items || [], total: data.total || 0, fieldLabels });
+    const items = data.items || [];
+    // Log first record keys and fieldLabels for debugging
+    if (items.length > 0) {
+      console.log('FIELD_LABELS:', JSON.stringify(fieldLabels));
+      console.log('FIRST_RECORD_KEYS:', JSON.stringify(Object.keys(items[0])));
+      console.log('FIRST_RECORD_SAMPLE:', JSON.stringify(items[0]));
+    }
+    return Response.json({ items, total: data.total || 0, fieldLabels });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
