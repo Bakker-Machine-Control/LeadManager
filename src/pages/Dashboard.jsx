@@ -68,7 +68,7 @@ export default function Dashboard() {
         company: r.company || '',
         city: r.city || '',
         smartsuite_status: r.smartsuite_status || '',
-        lead_date: r.lead_date || r.last_synced_at || r.created_date || '',
+        lead_date: r.lead_date || r.last_synced_at || '',
         sync_status: r.sync_status || 'pending',
         zoho_lead_id: r.zoho_lead_id || '',
         raw_data: r.raw_data || {},
