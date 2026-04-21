@@ -89,13 +89,13 @@ export default function Dashboard() {
         smartsuite_id: item.id,
         name: extractField(item, ['title', 'name', 'full_name', 'contact_name', 'Name']),
         email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9']),
-        phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 'sc8d719ad3']),
+        phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 's0c5029009', 's2fc4c481d', 'sc8d719ad3']),
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
         lead_date: item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
         raw_data: item,
-      })).filter(r => r.phone && r.phone.startsWith('+31'));
+      }));
       setRecords(mapped);
       toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald. Zoho check bezig…` });
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
