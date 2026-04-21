@@ -34,6 +34,13 @@ Deno.serve(async (req) => {
       const resp = await fetch(`${domain}/crm/v2/Leads?page=${page}&per_page=200`, {
         headers: { 'Authorization': `Zoho-oauthtoken ${accessToken}` },
       });
+      
+      if (resp.status === 429) {
+        console.warn(`Rate limited on page ${page}, waiting 30 seconds...`);
+        await new Promise(r => setTimeout(r, 30000));
+        continue;
+      }
+      
       const data = await resp.json();
       
       if (data.data) {
@@ -43,16 +50,16 @@ Deno.serve(async (req) => {
       hasMore = data.info?.more_records ?? false;
       page++;
       
-      // Small delay between pages to avoid rate limits
-      if (hasMore) await new Promise(r => setTimeout(r, 500));
+      // Delay between pages to avoid rate limits
+      if (hasMore) await new Promise(r => setTimeout(r, 2000));
     }
 
-    // Clear existing contacts and insert new ones
-    await base44.asServiceRole.entities.ZohoContact.list(-1, 10000).then(async existing => {
-      for (const record of existing) {
-        await base44.asServiceRole.entities.ZohoContact.delete(record.id);
-      }
-    });
+    // Clear existing contacts sequentially to avoid rate limits
+    const existing = await base44.asServiceRole.entities.ZohoContact.list('-created_date', 10000);
+    for (const record of existing) {
+      await base44.asServiceRole.entities.ZohoContact.delete(record.id);
+      await new Promise(r => setTimeout(r, 50));
+    }
 
     // Bulk insert new contacts
     const contacts = allLeads.map(lead => ({
