@@ -302,7 +302,8 @@ export default function Dashboard() {
   };
 
   const handleSaveNotes = async (rec, notes) => {
-    const result = await doSync({ ...rec, notes });
+    const { raw_data, ...leadData } = rec;
+    const result = await doSync({ ...leadData, notes, raw_data });
     toast({ title: result?.success ? 'Opmerking gesynchroniseerd!' : 'Sync mislukt', description: result?.message || '', variant: result?.success ? 'default' : 'destructive' });
   };
 
