@@ -216,7 +216,15 @@ export default function Dashboard() {
 
     const existing = syncStatuses[rec.smartsuite_id];
     const { raw_data, ...payloadWithoutRaw } = rec;
-    const payload = { ...payloadWithoutRaw, raw_data, sync_status: newStatus, sync_error: result?.success ? '' : (result?.message || ''), zoho_lead_id: result?.zoho_id || rec.zoho_lead_id || '', last_synced_at: new Date().toISOString() };
+    const payload = { 
+      ...payloadWithoutRaw, 
+      raw_data, 
+      sync_status: newStatus, 
+      sync_error: result?.success ? '' : (result?.message || ''), 
+      zoho_lead_id: result?.zoho_id || rec.zoho_lead_id || '', 
+      last_synced_at: new Date().toISOString(),
+      ...(success && { zoho_exists: true, zoho_match: rec.email ? 'Email' : 'Phone' })
+    };
 
     // Always look up the DB record to avoid "update undefined" errors
     const found = await base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id });
@@ -227,7 +235,7 @@ export default function Dashboard() {
       const created = await base44.entities.SyncedRecord.create(payload);
       setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { id: created.id, sync_status: newStatus, zoho_lead_id: result?.zoho_id || '' } }));
     }
-    setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: newStatus } : r));
+    setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: newStatus, ...(success && { zoho_exists: true, zoho_match: rec.email ? 'Email' : 'Phone' }) } : r));
     return { success, message: result?.message };
   }, [settings, syncStatuses]);
 
