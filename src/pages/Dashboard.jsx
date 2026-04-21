@@ -126,7 +126,7 @@ export default function Dashboard() {
         email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9', 'sf99925cfb']),
         phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 's0c5029009', 's2fc4c481d', 'sc8d719ad3']),
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
-        city: extractField(item, [...(citySlug ? [citySlug] : []), 'city', 'place', 'stad', 'City', 'gemeente', 'location', 'woonplaats']),
+        city: extractField(item, [...(citySlug ? [citySlug] : []), 's778b5be05', 'city', 'place', 'stad', 'City', 'gemeente', 'location', 'woonplaats']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
         lead_date: (dateSlug ? (item[dateSlug]?.date || item[dateSlug]) : null) || item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
