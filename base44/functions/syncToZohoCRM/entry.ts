@@ -19,18 +19,24 @@ async function getZohoToken() {
 // Zoho upsert supports max 100 records per call
 async function upsertBatch(leads, domain, accessToken) {
   const zohoLeads = leads.map(lead => {
-    const nameParts = (lead.name || '').trim().split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || nameParts[0] || '';
-    return {
+    const nameParts = (lead.name || '').trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Onbekend';
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
+    const obj = {
       First_Name: firstName,
-      Last_Name: lastName || firstName,
-      Email: lead.email || '',
+      Last_Name: lastName,
       Phone: lead.phone || '',
-      Company: lead.company || 'Unknown',
+      Company: lead.company || 'Onbekend',
+      City: lead.city || '',
+      ...(lead.email ? { Email: lead.email } : {}),
       ...(lead.notes ? { Description: lead.notes } : {}),
     };
+    return obj;
   });
+
+  // Use Phone as duplicate check (always present), add Email if available
+  const hasMail = leads.some(l => l.email);
+  const duplicateFields = hasMail ? ['Email', 'Phone'] : ['Phone'];
 
   const resp = await fetch(`${domain}/crm/v2/Leads/upsert`, {
     method: 'POST',
@@ -40,7 +46,7 @@ async function upsertBatch(leads, domain, accessToken) {
     },
     body: JSON.stringify({
       data: zohoLeads,
-      duplicate_check_fields: ['Email'],
+      duplicate_check_fields: duplicateFields,
     }),
   });
 
