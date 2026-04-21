@@ -159,13 +159,47 @@ export default function Dashboard() {
   const handleSyncAll = async () => {
     if (!records.length) return;
     setSyncingAll(true);
+
+    const leadsToSync = records.map(rec => {
+      const { sync_status, smartsuite_status, ...leadData } = rec;
+      return leadData;
+    });
+
+    const res = await syncToZohoCRM({
+      zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+      leads: leadsToSync,
+    });
+
+    const resultMap = {};
+    (res.data?.results || []).forEach(r => { resultMap[r.smartsuite_id] = r; });
+
     let successCount = 0, errorCount = 0;
-    for (const rec of records) {
-      setSyncingId(rec.smartsuite_id);
-      const result = await doSync(rec);
+    const updates = records.map(rec => {
+      const result = resultMap[rec.smartsuite_id];
+      const newStatus = result?.success ? 'synced' : 'error';
       if (result?.success) successCount++; else errorCount++;
-    }
-    setSyncingId(null);
+      return { rec, newStatus, result };
+    });
+
+    // Persist all results in parallel
+    await Promise.all(updates.map(async ({ rec, newStatus, result }) => {
+      const existing = syncStatuses[rec.smartsuite_id];
+      const payload = { ...rec, sync_status: newStatus, sync_error: result?.message || '', zoho_lead_id: result?.zoho_id || '', last_synced_at: new Date().toISOString() };
+      if (existing) {
+        await base44.entities.SyncedRecord.update(existing.id, payload);
+      } else {
+        await base44.entities.SyncedRecord.create(payload);
+      }
+    }));
+
+    const newStatuses = {};
+    updates.forEach(({ rec, newStatus }) => { newStatuses[rec.smartsuite_id] = { sync_status: newStatus }; });
+    setSyncStatuses(p => ({ ...p, ...newStatuses }));
+    setRecords(prev => prev.map(r => {
+      const u = resultMap[r.smartsuite_id];
+      return u ? { ...r, sync_status: u.success ? 'synced' : 'error' } : r;
+    }));
+
     const status = errorCount === 0 ? 'success' : successCount === 0 ? 'error' : 'partial';
     await logAction('sync_all', status, `Sync all: ${successCount} succeeded, ${errorCount} failed`, records.length);
     toast({ title: 'Sync klaar', description: `${successCount} gesynchroniseerd, ${errorCount} mislukt` });

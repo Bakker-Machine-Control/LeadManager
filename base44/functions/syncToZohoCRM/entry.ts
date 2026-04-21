@@ -16,6 +16,38 @@ async function getZohoToken() {
   return data.access_token;
 }
 
+// Zoho upsert supports max 100 records per call
+async function upsertBatch(leads, domain, accessToken) {
+  const zohoLeads = leads.map(lead => {
+    const nameParts = (lead.name || '').trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || nameParts[0] || '';
+    return {
+      First_Name: firstName,
+      Last_Name: lastName || firstName,
+      Email: lead.email || '',
+      Phone: lead.phone || '',
+      Company: lead.company || 'Unknown',
+      ...(lead.notes ? { Description: lead.notes } : {}),
+    };
+  });
+
+  const resp = await fetch(`${domain}/crm/v2/Leads/upsert`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Zoho-oauthtoken ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      data: zohoLeads,
+      duplicate_check_fields: ['Email'],
+    }),
+  });
+
+  const respData = await resp.json();
+  return respData.data || [];
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -27,42 +59,23 @@ Deno.serve(async (req) => {
 
     const domain = zoho_api_domain || 'https://www.zohoapis.eu';
     const accessToken = await getZohoToken();
+
+    const BATCH_SIZE = 100;
     const results = [];
 
-    for (const lead of leads) {
-      const nameParts = (lead.name || '').trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || nameParts[0] || '';
+    for (let i = 0; i < leads.length; i += BATCH_SIZE) {
+      const batch = leads.slice(i, i + BATCH_SIZE);
+      const batchResults = await upsertBatch(batch, domain, accessToken);
 
-      const zohoLead = {
-        First_Name: firstName,
-        Last_Name: lastName || firstName,
-        Email: lead.email || '',
-        Phone: lead.phone || '',
-        Company: lead.company || 'Unknown',
-        ...(lead.notes ? { Description: lead.notes } : {}),
-      };
-
-      const resp = await fetch(`${domain}/crm/v2/Leads/upsert`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Zoho-oauthtoken ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: [zohoLead],
-          duplicate_check_fields: ['Email'],
-        }),
-      });
-
-      const respData = await resp.json();
-      const resultItem = respData.data?.[0];
-      results.push({
-        smartsuite_id: lead.smartsuite_id,
-        success: resultItem?.status === 'success' || resultItem?.code === 'SUCCESS',
-        zoho_id: resultItem?.details?.id || null,
-        message: resultItem?.message || (resp.ok ? 'OK' : `HTTP ${resp.status}`),
-        raw: resultItem,
+      batch.forEach((lead, idx) => {
+        const resultItem = batchResults[idx];
+        results.push({
+          smartsuite_id: lead.smartsuite_id,
+          success: resultItem?.status === 'success' || resultItem?.code === 'SUCCESS',
+          zoho_id: resultItem?.details?.id || null,
+          message: resultItem?.message || 'OK',
+          raw: resultItem,
+        });
       });
     }
 
