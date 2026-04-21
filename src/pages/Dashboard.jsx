@@ -25,7 +25,7 @@ function extractField(record, slugs) {
       return first.phone_number || first.value || first.name || String(first);
     }
     if (typeof val === 'object') {
-      return val.value || val.name || val.label || '';
+      return val.sys_root || val.value || val.name || val.label || '';
     }
     return String(val);
   }
@@ -101,7 +101,7 @@ export default function Dashboard() {
       if (res.data?.fieldLabels) setFieldLabels(res.data.fieldLabels);
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
-        name: extractField(item, ['title', 'name', 'full_name', 'contact_name', 'Name']),
+        name: extractField(item, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']),
         email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9']),
         phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 's0c5029009', 's2fc4c481d', 'sc8d719ad3']),
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
