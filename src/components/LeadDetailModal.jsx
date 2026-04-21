@@ -130,7 +130,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
             size="sm"
             variant="outline"
             onClick={handleSaveNotes}
-            disabled={savingNotes || !notes.trim()}
+            disabled={savingNotes}
             className="mt-1.5 h-7 text-xs gap-1"
           >
             {notesSaved ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : null}
