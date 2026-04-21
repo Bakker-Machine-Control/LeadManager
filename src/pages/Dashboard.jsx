@@ -62,12 +62,12 @@ export default function Dashboard() {
       // Load historical records into the table on startup
       const historical = existing.map(r => ({
         smartsuite_id: r.smartsuite_id,
-        name: r.first_name ? `${r.first_name} ${r.last_name || ''}`.trim() : r.smartsuite_id,
+        name: r.name || r.smartsuite_id,
         email: r.email || '',
         phone: r.phone || '',
         company: r.company || '',
-        smartsuite_status: '',
-        lead_date: r.last_synced_at || r.created_date || '',
+        smartsuite_status: r.smartsuite_status || '',
+        lead_date: r.lead_date || r.last_synced_at || r.created_date || '',
         sync_status: r.sync_status || 'pending',
         zoho_lead_id: r.zoho_lead_id || '',
         raw_data: r.raw_data || {},
@@ -113,6 +113,37 @@ export default function Dashboard() {
       setRecords(mapped);
       toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald. Zoho check bezig…` });
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
+
+      // Persist fetched records to SyncedRecord so they load on next app start
+      // Do in background, chunks of 100
+      (async () => {
+        const existing = await base44.entities.SyncedRecord.list('-created_date', 2000);
+        const existingMap = {};
+        existing.forEach(r => { existingMap[r.smartsuite_id] = r; });
+
+        const CHUNK = 100;
+        for (let i = 0; i < mapped.length; i += CHUNK) {
+          const chunk = mapped.slice(i, i + CHUNK);
+          await Promise.all(chunk.map(async r => {
+            const { sync_status, raw_data, smartsuite_status, ...fields } = r;
+            if (existingMap[r.smartsuite_id]) {
+              // Only update non-synced fields (don't overwrite sync_status)
+              await base44.entities.SyncedRecord.update(existingMap[r.smartsuite_id].id, {
+                ...fields,
+                raw_data,
+                smartsuite_status,
+              });
+            } else {
+              await base44.entities.SyncedRecord.create({
+                ...fields,
+                raw_data,
+                smartsuite_status,
+                sync_status: 'pending',
+              });
+            }
+          }));
+        }
+      })();
 
       try {
         const leadsToCheck = mapped.map(r => ({ smartsuite_id: r.smartsuite_id, email: r.email, phone: r.phone }));
