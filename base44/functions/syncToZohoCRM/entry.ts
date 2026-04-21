@@ -50,7 +50,14 @@ async function upsertBatch(leads, domain, accessToken) {
     }),
   });
 
-  const respData = await resp.json();
+  const rawText = await resp.text();
+  if (rawText.includes('Just a moment') || rawText.includes('challenge')) {
+    throw new Error('Zoho API rate limit bereikt. Wacht even en probeer het opnieuw.');
+  }
+  if (!resp.ok) {
+    throw new Error(`Zoho API error: ${resp.status}`);
+  }
+  const respData = JSON.parse(rawText);
   return respData.data || [];
 }
 

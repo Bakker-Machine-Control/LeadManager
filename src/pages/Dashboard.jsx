@@ -111,9 +111,10 @@ export default function Dashboard() {
       solution_id: settings.smartsuite_solution_id,
       table_id: settings.smartsuite_table_id,
     });
-    if (res.data?.error) {
-      toast({ title: 'Fetch mislukt', description: res.data.error, variant: 'destructive' });
-      await logAction('fetch', 'error', res.data.error, 0);
+    if (res.data?.error || res.status === 429) {
+      const msg = res.data?.error || 'Rate limit bereikt. Wacht even en probeer het opnieuw.';
+      toast({ title: 'Fetch mislukt', description: msg, variant: 'destructive' });
+      await logAction('fetch', 'error', msg, 0);
     } else {
       const items = res.data?.items || [];
       const fl = res.data?.fieldLabels || {};

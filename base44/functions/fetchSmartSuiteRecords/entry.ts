@@ -34,10 +34,18 @@ Deno.serve(async (req) => {
 
     if (!recordsResp.ok) {
       const errText = await recordsResp.text();
-      return Response.json({ error: `SmartSuite API error: ${recordsResp.status} - ${errText}` }, { status: 502 });
+      const isRateLimit = recordsResp.status === 429 || errText.includes('Just a moment');
+      if (isRateLimit) {
+        return Response.json({ error: 'SmartSuite API rate limit bereikt. Wacht even en probeer het opnieuw.' }, { status: 429 });
+      }
+      return Response.json({ error: `SmartSuite API error: ${recordsResp.status}` }, { status: 502 });
     }
 
-    const data = await recordsResp.json();
+    const rawText = await recordsResp.text();
+    if (rawText.includes('Just a moment') || rawText.includes('challenge')) {
+      return Response.json({ error: 'SmartSuite API rate limit bereikt (Cloudflare). Wacht even en probeer het opnieuw.' }, { status: 429 });
+    }
+    const data = JSON.parse(rawText);
 
     // Build slug -> label map from structure
     let fieldLabels = {};
