@@ -39,16 +39,51 @@ const Row = ({ icon: Icon, label, value }) => (
   </div>
 );
 
+function extractFromRaw(val) {
+  if (!val || val === '') return '';
+  if (Array.isArray(val)) {
+    const first = val[0];
+    if (!first) return '';
+    if (typeof first === 'string') return first;
+    return first.phone_number || first.value || first.name || String(first);
+  }
+  if (typeof val === 'object') {
+    if (val.location_city) return val.location_city;
+    if (val.sys_root) return val.sys_root.replace(/,\s*[\w\s]+$/, '').trim();
+    if (val.date) return val.date;
+    return val.value || val.name || val.label || '';
+  }
+  return String(val);
+}
+
+function findInRaw(rawData, fieldLabels, keywords) {
+  // First try by label match
+  const entry = Object.entries(rawData).find(([k]) => {
+    const label = (fieldLabels[k] || k).toLowerCase();
+    return keywords.some(kw => label.includes(kw.toLowerCase()));
+  });
+  if (entry) {
+    const extracted = extractFromRaw(entry[1]);
+    if (extracted) return extracted;
+  }
+  return '';
+}
+
 export default function LeadDetailModal({ record, open, onClose, fieldLabels = {}, onSaveNotes }) {
   const [copied, setCopied] = useState(null);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
 
-  // Reset notes when record changes
-  const prevId = useState(null);
-
   if (!record) return null;
+
+  const raw = record.raw_data || {};
+
+  // Use stored value or fall back to raw_data extraction
+  const email = record.email || findInRaw(raw, fieldLabels, ['email', 'e-mail', 'mail']);
+  const phone = record.phone || findInRaw(raw, fieldLabels, ['phone', 'telefoon', 'mobile', 'mobiel', 'gsm', 'tel']);
+  const company = record.company || findInRaw(raw, fieldLabels, ['company', 'bedrijf', 'organization', 'organisatie', 'firma']);
+  const city = record.city || findInRaw(raw, fieldLabels, ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location', 'plaats']);
 
   const sa4820 = record.raw_data?.sa4820cf90 || '';
   const isBMC = typeof sa4820 === 'string' && sa4820.includes('BMC');
@@ -107,10 +142,10 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
           {distributor && (
             <Row icon={Truck} label={fieldLabels[distributor[0]] || 'Distributor'} value={formatValue(distributor[1])} />
           )}
-          <Row icon={Mail} label="Email" value={record.email} />
-          <Row icon={Phone} label="Telefoon" value={record.phone} />
-          <Row icon={Building2} label="Bedrijf" value={record.company} />
-          <Row icon={MapPin} label="Plaats" value={record.city} />
+          <Row icon={Mail} label="Email" value={email} />
+          <Row icon={Phone} label="Telefoon" value={phone} />
+          <Row icon={Building2} label="Bedrijf" value={company} />
+          <Row icon={MapPin} label="Plaats" value={city} />
           <Row icon={Calendar} label="Lead datum" value={formatDate(record.lead_date)} />
           <Row icon={Hash} label="SmartSuite status" value={record.smartsuite_status} />
         </div>
