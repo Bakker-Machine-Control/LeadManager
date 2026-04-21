@@ -63,7 +63,7 @@ export default function Dashboard() {
     });
     base44.entities.SyncedRecord.list('-created_date', 1000).then(existing => {
       const map = {};
-      existing.forEach(r => { map[r.smartsuite_id] = r; });
+      existing.forEach(r => { map[r.smartsuite_id] = { id: r.id, sync_status: r.sync_status, zoho_lead_id: r.zoho_lead_id }; });
       setSyncStatuses(map);
       // Load historical records into the table on startup
       const historical = existing.map(r => ({
@@ -205,14 +205,19 @@ export default function Dashboard() {
     const newStatus = success ? 'synced' : 'error';
 
     const existing = syncStatuses[rec.smartsuite_id];
-    if (existing) {
-      await base44.entities.SyncedRecord.update(existing.id, {
-        ...rec, sync_status: newStatus, sync_error: result?.message || '', zoho_lead_id: result?.zoho_id || '', last_synced_at: new Date().toISOString(),
-      });
+    const payload = { ...rec, sync_status: newStatus, sync_error: result?.message || '', zoho_lead_id: result?.zoho_id || '', last_synced_at: new Date().toISOString() };
+    if (existing?.id) {
+      await base44.entities.SyncedRecord.update(existing.id, payload);
     } else {
-      await base44.entities.SyncedRecord.create({
-        ...rec, sync_status: newStatus, sync_error: result?.message || '', zoho_lead_id: result?.zoho_id || '', last_synced_at: new Date().toISOString(),
-      });
+      // Try to find by smartsuite_id first
+      const found = await base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id });
+      if (found.length > 0) {
+        await base44.entities.SyncedRecord.update(found[0].id, payload);
+        setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], id: found[0].id } }));
+      } else {
+        const created = await base44.entities.SyncedRecord.create(payload);
+        setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], id: created.id } }));
+      }
     }
     setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { sync_status: newStatus } }));
     setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: newStatus } : r));
