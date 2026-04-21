@@ -75,11 +75,20 @@ Deno.serve(async (req) => {
 
       batch.forEach((lead, idx) => {
         const resultItem = batchResults[idx];
+        const success = resultItem?.status === 'success' || resultItem?.code === 'SUCCESS';
+        // Build a meaningful error message if not successful
+        let message = resultItem?.message || 'Onbekende fout';
+        if (!success && resultItem?.details) {
+          const details = Object.entries(resultItem.details)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+          message = `${message} (${details})`;
+        }
         results.push({
           smartsuite_id: lead.smartsuite_id,
-          success: resultItem?.status === 'success' || resultItem?.code === 'SUCCESS',
+          success,
           zoho_id: resultItem?.details?.id || null,
-          message: resultItem?.message || 'OK',
+          message,
           raw: resultItem,
         });
       });
