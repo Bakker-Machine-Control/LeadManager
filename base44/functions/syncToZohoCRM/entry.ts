@@ -29,6 +29,7 @@ async function upsertBatch(leads, domain, accessToken) {
       Company: lead.company || 'Onbekend',
       City: lead.city || '',
       ...(lead.email ? { Email: lead.email } : {}),
+      ...(lead.smartsuite_status ? { Lead_Status: lead.smartsuite_status } : {}),
       ...(lead.notes ? { Description: lead.notes } : {}),
     };
     return obj;
