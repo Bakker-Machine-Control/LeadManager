@@ -1,0 +1,32 @@
+{
+  "name": "ZohoContact",
+  "type": "object",
+  "properties": {
+    "zoho_id": {
+      "type": "string",
+      "description": "Zoho Lead ID"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "company": {
+      "type": "string"
+    },
+    "last_synced": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "zoho_id"
+  ]
+}
