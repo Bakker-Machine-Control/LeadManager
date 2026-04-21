@@ -123,7 +123,7 @@ export default function Dashboard() {
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
         name: extractField(item, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']),
-        email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9', 'sf99925cfb']),
+        email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9', 'sf99925cfb', 's19d20e4c1']),
         phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 's0c5029009', 's2fc4c481d', 'sc8d719ad3']),
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b', 'sfbbd03935']),
         city: extractField(item, [...(citySlug ? [citySlug] : []), 's778b5be05', 'city', 'place', 'stad', 'City', 'gemeente', 'location', 'woonplaats']),
