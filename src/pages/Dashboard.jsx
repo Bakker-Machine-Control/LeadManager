@@ -55,10 +55,24 @@ export default function Dashboard() {
     base44.entities.AppSettings.filter({ key: 'main' }).then(s => {
       if (s.length > 0) setSettings(s[0]);
     });
-    base44.entities.SyncedRecord.list('-created_date', 200).then(existing => {
+    base44.entities.SyncedRecord.list('-created_date', 1000).then(existing => {
       const map = {};
       existing.forEach(r => { map[r.smartsuite_id] = r; });
       setSyncStatuses(map);
+      // Load historical records into the table on startup
+      const historical = existing.map(r => ({
+        smartsuite_id: r.smartsuite_id,
+        name: r.first_name ? `${r.first_name} ${r.last_name || ''}`.trim() : r.smartsuite_id,
+        email: r.email || '',
+        phone: r.phone || '',
+        company: r.company || '',
+        smartsuite_status: '',
+        lead_date: r.last_synced_at || r.created_date || '',
+        sync_status: r.sync_status || 'pending',
+        zoho_lead_id: r.zoho_lead_id || '',
+        raw_data: r.raw_data || {},
+      }));
+      setRecords(historical);
     });
   }, []);
 
