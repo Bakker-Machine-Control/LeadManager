@@ -68,7 +68,7 @@ export default function Dashboard() {
         company: r.company || '',
         city: r.city || '',
         smartsuite_status: r.smartsuite_status || '',
-        lead_date: r.lead_date || r.last_synced_at || '',
+        lead_date: r.lead_date || (r.raw_data ? (r.raw_data.s9642641d7?.date || r.raw_data.first_created?.on) : null) || '',
         sync_status: r.sync_status || 'pending',
         zoho_lead_id: r.zoho_lead_id || '',
         raw_data: r.raw_data || {},
@@ -107,6 +107,13 @@ export default function Dashboard() {
           )?.[0]
         : null;
 
+      // Find date slug by label
+      const dateSlug = res.data?.fieldLabels
+        ? Object.entries(res.data.fieldLabels).find(([, label]) =>
+            ['date', 'datum', 'lead date', 'created', 'aangemaakt', 'submission date', 'inzendingsdatum', 'ontvangen'].includes(label.toLowerCase())
+          )?.[0]
+        : null;
+
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
         name: extractField(item, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']),
@@ -115,7 +122,7 @@ export default function Dashboard() {
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
         city: extractField(item, [...(citySlug ? [citySlug] : []), 'city', 'place', 'stad', 'City', 'gemeente', 'location', 'woonplaats']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
-        lead_date: item.s9642641d7?.date || item.first_created?.on || '',
+        lead_date: (dateSlug ? (item[dateSlug]?.date || item[dateSlug]) : null) || item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
         raw_data: item,
       })).filter(r => r.phone && r.phone.startsWith('+31'));
