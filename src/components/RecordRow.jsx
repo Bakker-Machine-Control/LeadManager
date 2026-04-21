@@ -54,6 +54,7 @@ export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, 
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.company || '—'}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">{record.city || '—'}</td>
       <td className="px-4 py-3">
         {record.zoho_exists === true ? (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">

@@ -12,6 +12,9 @@
     "last_name": {
       "type": "string"
     },
+    "name": {
+      "type": "string"
+    },
     "email": {
       "type": "string"
     },
@@ -20,6 +23,10 @@
     },
     "company": {
       "type": "string"
+    },
+    "city": {
+      "type": "string",
+      "description": "City / place name"
     },
     "sync_status": {
       "type": "string",
@@ -41,6 +48,12 @@
     "zoho_lead_id": {
       "type": "string",
       "description": "The lead ID in Zoho CRM after sync"
+    },
+    "smartsuite_status": {
+      "type": "string"
+    },
+    "lead_date": {
+      "type": "string"
     },
     "raw_data": {
       "type": "object",

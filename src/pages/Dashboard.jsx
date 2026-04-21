@@ -66,6 +66,7 @@ export default function Dashboard() {
         email: r.email || '',
         phone: r.phone || '',
         company: r.company || '',
+        city: r.city || '',
         smartsuite_status: r.smartsuite_status || '',
         lead_date: r.lead_date || r.last_synced_at || r.created_date || '',
         sync_status: r.sync_status || 'pending',
@@ -99,12 +100,20 @@ export default function Dashboard() {
     } else {
       const items = res.data?.items || [];
       if (res.data?.fieldLabels) setFieldLabels(res.data.fieldLabels);
+      // Find city slug by label
+      const citySlug = res.data?.fieldLabels
+        ? Object.entries(res.data.fieldLabels).find(([, label]) =>
+            ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location'].includes(label.toLowerCase())
+          )?.[0]
+        : null;
+
       const mapped = items.map(item => ({
         smartsuite_id: item.id,
         name: extractField(item, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']),
         email: extractField(item, ['email', 'email_address', 'contact_email', 'Email', 's6299218c9']),
         phone: extractField(item, ['phone', 'phone_number', 'mobile', 'Phone', 's0c5029009', 's2fc4c481d', 'sc8d719ad3']),
         company: extractField(item, ['company', 'company_name', 'organization', 'Company', 's18939601b']),
+        city: extractField(item, [...(citySlug ? [citySlug] : []), 'city', 'place', 'stad', 'City', 'gemeente', 'location', 'woonplaats']),
         smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
         lead_date: item.s9642641d7?.date || item.first_created?.on || '',
         sync_status: syncStatuses[item.id]?.sync_status || 'pending',
@@ -435,6 +444,7 @@ export default function Dashboard() {
                     <th className="px-4 py-2.5 text-left font-medium">Email</th>
                     <th className="px-4 py-2.5 text-left font-medium">Telefoon</th>
                     <th className="px-4 py-2.5 text-left font-medium">Bedrijf</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Plaats</th>
                     <th className="px-4 py-2.5 text-left font-medium">In Zoho?</th>
                     <th className="px-4 py-2.5 text-left font-medium">Sync Status</th>
                     <th className="px-4 py-2.5 text-left font-medium">SmartSuite Status</th>
