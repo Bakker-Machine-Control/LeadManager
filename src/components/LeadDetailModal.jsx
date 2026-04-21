@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, parseISO } from 'date-fns';
-import { Mail, Phone, Building2, Calendar, CheckCircle2, AlertCircle, MinusCircle, Hash, Copy, Truck, MessageSquare } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, CheckCircle2, AlertCircle, MinusCircle, Hash, Copy, Truck, MessageSquare, MapPin } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
@@ -98,6 +98,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
           <Row icon={Mail} label="Email" value={record.email} />
           <Row icon={Phone} label="Telefoon" value={record.phone} />
           <Row icon={Building2} label="Bedrijf" value={record.company} />
+          <Row icon={MapPin} label="Plaats" value={record.city} />
           <Row icon={Calendar} label="Lead datum" value={formatDate(record.lead_date)} />
           <Row icon={Hash} label="SmartSuite status" value={record.smartsuite_status} />
         </div>
