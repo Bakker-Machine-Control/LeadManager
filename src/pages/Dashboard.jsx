@@ -62,7 +62,7 @@ export default function Dashboard() {
       // Load historical records into the table on startup
       const historical = existing.map(r => ({
         smartsuite_id: r.smartsuite_id,
-        name: r.name || r.smartsuite_id,
+        name: r.name || (r.raw_data ? extractField(r.raw_data, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']) : '') || r.smartsuite_id,
         email: r.email || '',
         phone: r.phone || '',
         company: r.company || '',
