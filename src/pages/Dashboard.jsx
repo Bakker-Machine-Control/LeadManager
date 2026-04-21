@@ -257,16 +257,21 @@ export default function Dashboard() {
       return { rec, newStatus, result };
     });
 
-    // Persist all results in parallel
-    await Promise.all(updates.map(async ({ rec, newStatus, result }) => {
-      const existing = syncStatuses[rec.smartsuite_id];
-      const payload = { ...rec, sync_status: newStatus, sync_error: result?.message || '', zoho_lead_id: result?.zoho_id || '', last_synced_at: new Date().toISOString() };
-      if (existing) {
-        await base44.entities.SyncedRecord.update(existing.id, payload);
-      } else {
-        await base44.entities.SyncedRecord.create(payload);
-      }
-    }));
+    // Persist results sequentially in chunks to avoid rate limits
+    const PERSIST_CHUNK = 5;
+    for (let i = 0; i < updates.length; i += PERSIST_CHUNK) {
+      const chunk = updates.slice(i, i + PERSIST_CHUNK);
+      await Promise.all(chunk.map(async ({ rec, newStatus, result }) => {
+        const existing = syncStatuses[rec.smartsuite_id];
+        const payload = { ...rec, sync_status: newStatus, sync_error: result?.message || '', zoho_lead_id: result?.zoho_id || '', last_synced_at: new Date().toISOString() };
+        if (existing) {
+          await base44.entities.SyncedRecord.update(existing.id, payload);
+        } else {
+          await base44.entities.SyncedRecord.create(payload);
+        }
+      }));
+      if (i + PERSIST_CHUNK < updates.length) await new Promise(r => setTimeout(r, 300));
+    }
 
     const newStatuses = {};
     updates.forEach(({ rec, newStatus }) => { newStatuses[rec.smartsuite_id] = { sync_status: newStatus }; });
