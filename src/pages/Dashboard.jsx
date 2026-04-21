@@ -115,33 +115,37 @@ export default function Dashboard() {
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
 
       // Persist fetched records to SyncedRecord so they load on next app start
-      // Do in background, chunks of 100
+      // Sequential small batches to avoid rate limits
       (async () => {
         const existing = await base44.entities.SyncedRecord.list('-created_date', 2000);
         const existingMap = {};
         existing.forEach(r => { existingMap[r.smartsuite_id] = r; });
 
-        const CHUNK = 100;
-        for (let i = 0; i < mapped.length; i += CHUNK) {
-          const chunk = mapped.slice(i, i + CHUNK);
-          await Promise.all(chunk.map(async r => {
-            const { sync_status, raw_data, smartsuite_status, ...fields } = r;
-            if (existingMap[r.smartsuite_id]) {
-              // Only update non-synced fields (don't overwrite sync_status)
-              await base44.entities.SyncedRecord.update(existingMap[r.smartsuite_id].id, {
-                ...fields,
-                raw_data,
-                smartsuite_status,
-              });
-            } else {
-              await base44.entities.SyncedRecord.create({
-                ...fields,
-                raw_data,
-                smartsuite_status,
-                sync_status: 'pending',
-              });
-            }
-          }));
+        const toCreate = [];
+        const toUpdate = [];
+
+        mapped.forEach(r => {
+          const { sync_status, raw_data, smartsuite_status, ...fields } = r;
+          if (existingMap[r.smartsuite_id]) {
+            toUpdate.push({ id: existingMap[r.smartsuite_id].id, data: { ...fields, raw_data, smartsuite_status } });
+          } else {
+            toCreate.push({ ...fields, raw_data, smartsuite_status, sync_status: 'pending' });
+          }
+        });
+
+        // Bulk create new records in chunks of 50
+        const CREATE_CHUNK = 50;
+        for (let i = 0; i < toCreate.length; i += CREATE_CHUNK) {
+          await base44.entities.SyncedRecord.bulkCreate(toCreate.slice(i, i + CREATE_CHUNK));
+          if (i + CREATE_CHUNK < toCreate.length) await new Promise(r => setTimeout(r, 300));
+        }
+
+        // Update existing records sequentially, 5 at a time
+        const UPDATE_CHUNK = 5;
+        for (let i = 0; i < toUpdate.length; i += UPDATE_CHUNK) {
+          const chunk = toUpdate.slice(i, i + UPDATE_CHUNK);
+          await Promise.all(chunk.map(({ id, data }) => base44.entities.SyncedRecord.update(id, data)));
+          if (i + UPDATE_CHUNK < toUpdate.length) await new Promise(r => setTimeout(r, 300));
         }
       })();
 
