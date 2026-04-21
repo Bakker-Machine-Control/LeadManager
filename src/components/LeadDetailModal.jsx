@@ -79,11 +79,28 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
 
   const raw = record.raw_data || {};
 
-  // Use stored value or fall back to raw_data extraction
-  const email = record.email || findInRaw(raw, fieldLabels, ['email', 'e-mail', 'mail']);
-  const phone = record.phone || findInRaw(raw, fieldLabels, ['phone', 'telefoon', 'mobile', 'mobiel', 'gsm', 'tel']);
-  const company = record.company || findInRaw(raw, fieldLabels, ['company', 'bedrijf', 'organization', 'organisatie', 'firma']);
-  const city = record.city || findInRaw(raw, fieldLabels, ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location', 'plaats']);
+  // Use stored value or fall back to raw_data extraction by label, then by known slugs
+  const email = record.email ||
+    findInRaw(raw, fieldLabels, ['email', 'e-mail', 'mail']) ||
+    extractFromRaw(raw['s19d20e4c1']) ||
+    extractFromRaw(raw['sf99925cfb']) ||
+    extractFromRaw(raw['s6299218c9']);
+
+  const phone = record.phone ||
+    findInRaw(raw, fieldLabels, ['phone', 'telefoon', 'mobile', 'mobiel', 'gsm', 'tel']) ||
+    extractFromRaw(raw['s2fc4c481d']) ||
+    extractFromRaw(raw['s0c5029009']) ||
+    extractFromRaw(raw['sc8d719ad3']);
+
+  const company = record.company ||
+    findInRaw(raw, fieldLabels, ['company', 'bedrijf', 'organization', 'organisatie', 'firma']) ||
+    extractFromRaw(raw['sfbbd03935']) ||
+    extractFromRaw(raw['s18939601b']);
+
+  const city = record.city ||
+    findInRaw(raw, fieldLabels, ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location', 'plaats']) ||
+    extractFromRaw(raw['s778b5be05']) ||
+    extractFromRaw(raw['s84ca80bb4']);
 
   const sa4820 = record.raw_data?.sa4820cf90 || '';
   const isBMC = typeof sa4820 === 'string' && sa4820.includes('BMC');
