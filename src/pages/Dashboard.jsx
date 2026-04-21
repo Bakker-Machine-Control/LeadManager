@@ -106,9 +106,12 @@ export default function Dashboard() {
     }
     setFetching(true);
     
-    // Sync local Zoho contacts first
+    // Sync local Zoho contacts first (with cooldown to avoid rate limits)
     try {
-      await base44.functions.invoke('syncZohoContactsLocal', {});
+      const syncResult = await base44.functions.invoke('syncZohoContactsLocal', {});
+      if (!syncResult.data?.skipped) {
+        console.log('Zoho contacts synced');
+      }
     } catch (e) {
       console.warn('Could not sync Zoho contacts:', e);
     }
