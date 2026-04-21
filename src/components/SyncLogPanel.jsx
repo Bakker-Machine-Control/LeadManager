@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle2, XCircle, Info, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { nl } from 'date-fns/locale';
 
 export default function SyncLogPanel({ refreshKey }) {
   const [logs, setLogs] = useState([]);
@@ -38,7 +39,7 @@ export default function SyncLogPanel({ refreshKey }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{log.message}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {log.action} · {formatDistanceToNow(new Date(log.created_date), { addSuffix: true })}
+                      {log.action} · {formatDistanceToNow(new Date(log.created_date), { addSuffix: true, locale: nl })}
                     </p>
                   </div>
                   {log.records_affected != null && (
