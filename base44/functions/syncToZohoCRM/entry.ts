@@ -100,6 +100,11 @@ Deno.serve(async (req) => {
           raw: resultItem,
         });
       });
+
+      // Add delay between batches to avoid rate limits
+      if (i + BATCH_SIZE < leads.length) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
     }
 
     return Response.json({ results });

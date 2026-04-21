@@ -22,12 +22,12 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (user?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Check if we synced recently (cooldown: 5 minutes)
+    // Check if we synced recently (cooldown: 15 minutes)
     const recent = await base44.asServiceRole.entities.ZohoContact.list('-last_synced', 1);
     if (recent.length > 0) {
       const lastSync = new Date(recent[0].last_synced);
       const now = new Date();
-      if (now - lastSync < 5 * 60 * 1000) {
+      if (now - lastSync < 15 * 60 * 1000) {
         return Response.json({ skipped: true, message: 'Synced recently, skipping' });
       }
     }
