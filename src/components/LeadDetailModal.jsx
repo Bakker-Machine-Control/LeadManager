@@ -50,6 +50,10 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
 
   if (!record) return null;
 
+  const sa4820 = record.raw_data?.sa4820cf90 || '';
+  const isBMC = typeof sa4820 === 'string' && sa4820.includes('BMC');
+  const isSurveyour = typeof sa4820 === 'string' && sa4820.toLowerCase().includes('surveyour');
+
   const distributor = record.raw_data ? Object.entries(record.raw_data).find(([k, v]) => {
     const label = (fieldLabels[k] || k).toLowerCase();
     const labelMatch = label === 'distributor' || label === 'leverancier' || label.startsWith('distrib');
@@ -89,6 +93,14 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
           <DialogTitle className="text-lg">{record.name || 'Onbekend'}</DialogTitle>
           <p className="text-xs text-muted-foreground font-mono">{record.smartsuite_id}</p>
         </DialogHeader>
+
+        {/* Distributor label */}
+        {isBMC && (
+          <p className="mt-2 text-sm font-semibold text-emerald-800">Distributor BMC</p>
+        )}
+        {isSurveyour && (
+          <p className="mt-2 text-sm font-semibold text-red-600">Clown Bessie</p>
+        )}
 
         {/* Snel overzicht */}
         <div className="space-y-0 mt-2">
