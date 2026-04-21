@@ -160,20 +160,31 @@ export default function Dashboard() {
     if (!records.length) return;
     setSyncingAll(true);
 
+    const CHUNK_SIZE = 50;
     const leadsToSync = records.map(rec => {
       const { sync_status, smartsuite_status, ...leadData } = rec;
       return leadData;
     });
 
-    const res = await syncToZohoCRM({
-      zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
-      leads: leadsToSync,
-    });
-
     const resultMap = {};
-    (res.data?.results || []).forEach(r => { resultMap[r.smartsuite_id] = r; });
-
     let successCount = 0, errorCount = 0;
+
+    // Process in chunks of 50 to avoid timeouts
+    for (let i = 0; i < leadsToSync.length; i += CHUNK_SIZE) {
+      const chunk = leadsToSync.slice(i, i + CHUNK_SIZE);
+      const res = await syncToZohoCRM({
+        zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+        leads: chunk,
+      });
+      (res.data?.results || []).forEach(r => { resultMap[r.smartsuite_id] = r; });
+
+      // Update UI progress after each chunk
+      setRecords(prev => prev.map(r => {
+        const u = resultMap[r.smartsuite_id];
+        return u ? { ...r, sync_status: u.success ? 'synced' : 'error' } : r;
+      }));
+    }
+
     const updates = records.map(rec => {
       const result = resultMap[rec.smartsuite_id];
       const newStatus = result?.success ? 'synced' : 'error';
@@ -195,10 +206,6 @@ export default function Dashboard() {
     const newStatuses = {};
     updates.forEach(({ rec, newStatus }) => { newStatuses[rec.smartsuite_id] = { sync_status: newStatus }; });
     setSyncStatuses(p => ({ ...p, ...newStatuses }));
-    setRecords(prev => prev.map(r => {
-      const u = resultMap[r.smartsuite_id];
-      return u ? { ...r, sync_status: u.success ? 'synced' : 'error' } : r;
-    }));
 
     const status = errorCount === 0 ? 'success' : successCount === 0 ? 'error' : 'partial';
     await logAction('sync_all', status, `Sync all: ${successCount} succeeded, ${errorCount} failed`, records.length);
