@@ -274,6 +274,11 @@ export default function Dashboard() {
         const u = resultMap[r.smartsuite_id];
         return u ? { ...r, sync_status: u.success ? 'synced' : 'error' } : r;
       }));
+
+      // Respect Zoho rate limits - wait 2 seconds between chunks
+      if (i + CHUNK_SIZE < leadsToSync.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
 
     const updates = records.map(rec => {
