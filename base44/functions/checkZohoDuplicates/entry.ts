@@ -21,9 +21,9 @@ function normalizePhone(phone) {
   return phone.replace(/[\s\-\.\(\)]/g, '');
 }
 
-async function searchZoho(domain, accessToken, field, value) {
+async function searchZohoModule(domain, accessToken, module, field, value) {
   if (!value || value.trim() === '') return [];
-  const url = `${domain}/crm/v2/Leads/search?criteria=(${field}:equals:${encodeURIComponent(value.trim())})&fields=id,First_Name,Last_Name,Email,Phone`;
+  const url = `${domain}/crm/v2/${module}/search?criteria=(${field}:equals:${encodeURIComponent(value.trim())})&fields=id,First_Name,Last_Name,Email,Phone`;
   const resp = await fetch(url, {
     headers: { 'Authorization': `Zoho-oauthtoken ${accessToken}` },
   });
@@ -35,6 +35,14 @@ async function searchZoho(domain, accessToken, field, value) {
   } catch (_) {
     return [];
   }
+}
+
+async function searchZoho(domain, accessToken, field, value) {
+  const [leadsHits, contactsHits] = await Promise.all([
+    searchZohoModule(domain, accessToken, 'Leads', field, value),
+    searchZohoModule(domain, accessToken, 'Contacts', field, value),
+  ]);
+  return [...leadsHits, ...contactsHits];
 }
 
 // Run tasks with max concurrency to avoid overloading Zoho API
