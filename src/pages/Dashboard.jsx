@@ -105,6 +105,14 @@ export default function Dashboard() {
       return;
     }
     setFetching(true);
+    
+    // Sync local Zoho contacts first
+    try {
+      await base44.functions.invoke('syncZohoContactsLocal', {});
+    } catch (e) {
+      console.warn('Could not sync Zoho contacts:', e);
+    }
+    
     const res = await fetchSmartSuiteRecords({
       api_token: settings.smartsuite_api_token,
       account_id: settings.smartsuite_account_id,
