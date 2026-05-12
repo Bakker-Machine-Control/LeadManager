@@ -63,13 +63,19 @@ export default function Settings() {
     if (!grantCode.trim()) return;
     setGeneratingToken(true);
     setNewRefreshToken('');
-    const res = await generateZohoRefreshToken({ grant_code: grantCode.trim() });
-    setGeneratingToken(false);
-    if (res.data?.refresh_token) {
-      setNewRefreshToken(res.data.refresh_token);
-      toast({ title: 'Refresh token ontvangen!', description: 'Kopieer de token hieronder en sla op in secrets.' });
-    } else {
-      toast({ title: 'Fout', description: JSON.stringify(res.data), variant: 'destructive' });
+    try {
+      const res = await generateZohoRefreshToken({ grant_code: grantCode.trim() });
+      setGeneratingToken(false);
+      if (res.data?.refresh_token) {
+        setNewRefreshToken(res.data.refresh_token);
+        toast({ title: 'Refresh token ontvangen!', description: 'Kopieer de token hieronder en sla op in secrets.' });
+      } else {
+        toast({ title: 'Fout', description: res.data?.error || 'Kon refresh token niet genereren', variant: 'destructive' });
+      }
+    } catch (error) {
+      setGeneratingToken(false);
+      const errorMsg = error.response?.data?.error || error.message || 'Fout bij token generatie';
+      toast({ title: 'Fout', description: errorMsg, variant: 'destructive' });
     }
   };
 
@@ -79,16 +85,22 @@ export default function Settings() {
       return;
     }
     setDiscovering(true);
-    const res = await discoverSmartSuiteTableIds({
-      api_token: form.smartsuite_api_token,
-      account_id: form.smartsuite_account_id,
-    });
-    setDiscovering(false);
-    if (res.data?.solution_id) {
-      setForm(p => ({ ...p, smartsuite_solution_id: res.data.solution_id, smartsuite_table_id: res.data.table_id }));
-      toast({ title: 'Gevonden!', description: `Solution: ${res.data.solution_id}\nTable: ${res.data.table_id}` });
-    } else {
-      toast({ title: 'Niet gevonden', description: res.data?.error || 'Lead Bridge tabel niet gevonden', variant: 'destructive' });
+    try {
+      const res = await discoverSmartSuiteTableIds({
+        api_token: form.smartsuite_api_token,
+        account_id: form.smartsuite_account_id,
+      });
+      setDiscovering(false);
+      if (res.data?.solution_id) {
+        setForm(p => ({ ...p, smartsuite_solution_id: res.data.solution_id, smartsuite_table_id: res.data.table_id }));
+        toast({ title: 'Gevonden!', description: `Solution: ${res.data.solution_id}\nTable: ${res.data.table_id}` });
+      } else {
+        toast({ title: 'Niet gevonden', description: res.data?.error || 'Lead Bridge tabel niet gevonden', variant: 'destructive' });
+      }
+    } catch (error) {
+      setDiscovering(false);
+      const errorMsg = error.response?.data?.error || error.message || 'Fout bij zoeken';
+      toast({ title: 'Fout', description: errorMsg, variant: 'destructive' });
     }
   };
 
