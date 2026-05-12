@@ -7,10 +7,23 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { api_token, account_id, solution_id, table_id } = body;
+    let { api_token, account_id, solution_id, table_id } = body;
+
+    // If not in payload, fetch from AppSettings
+    if (!api_token || !account_id || !solution_id || !table_id) {
+      const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'main' });
+      if (settings.length === 0) {
+        return Response.json({ error: 'No SmartSuite credentials configured' }, { status: 400 });
+      }
+      const s = settings[0];
+      api_token = api_token || s.smartsuite_api_token;
+      account_id = account_id || s.smartsuite_account_id;
+      solution_id = solution_id || s.smartsuite_solution_id;
+      table_id = table_id || s.smartsuite_table_id;
+    }
 
     if (!api_token || !account_id || !solution_id || !table_id) {
-      return Response.json({ error: 'Missing required SmartSuite credentials' }, { status: 400 });
+      return Response.json({ error: 'Missing SmartSuite credentials in payload or settings' }, { status: 400 });
     }
 
     const headers = {
