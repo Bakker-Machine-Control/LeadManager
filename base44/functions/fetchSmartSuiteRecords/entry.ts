@@ -32,26 +32,49 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
-    // Fetch records and field structure in parallel
-    const [recordsResp, structureResp] = await Promise.all([
-      fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ limit: 1000, offset: 0 }),
-      }),
-      fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/`, {
-        method: 'GET',
-        headers,
-      }),
-    ]);
+    // Fetch with retry logic for rate limits
+    const MAX_RETRIES = 3;
+    let recordsResp, structureResp;
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        [recordsResp, structureResp] = await Promise.all([
+          fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ limit: 1000, offset: 0 }),
+          }),
+          fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/`, {
+            method: 'GET',
+            headers,
+          }),
+        ]);
+
+        if (recordsResp.ok) break; // Success, exit retry loop
+        
+        const errText = await recordsResp.text();
+        const isRateLimit = recordsResp.status === 429 || errText.includes('Just a moment') || errText.includes('challenge');
+        
+        if (isRateLimit && attempt < MAX_RETRIES - 1) {
+          // Exponential backoff: 2s, 4s, 8s
+          const delayMs = Math.pow(2, attempt + 1) * 1000;
+          console.log(`Rate limit hit, retry ${attempt + 1}/${MAX_RETRIES} after ${delayMs}ms`);
+          await new Promise(r => setTimeout(r, delayMs));
+          continue;
+        }
+        
+        if (isRateLimit) {
+          return Response.json({ error: 'SmartSuite API rate limit bereikt (Cloudflare). Probeer later opnieuw.' }, { status: 429 });
+        }
+        return Response.json({ error: `SmartSuite API error: ${recordsResp.status}` }, { status: 502 });
+      } catch (fetchError) {
+        if (attempt === MAX_RETRIES - 1) throw fetchError;
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000));
+      }
+    }
 
     if (!recordsResp.ok) {
-      const errText = await recordsResp.text();
-      const isRateLimit = recordsResp.status === 429 || errText.includes('Just a moment');
-      if (isRateLimit) {
-        return Response.json({ error: 'SmartSuite API rate limit bereikt. Wacht even en probeer het opnieuw.' }, { status: 429 });
-      }
-      return Response.json({ error: `SmartSuite API error: ${recordsResp.status}` }, { status: 502 });
+      return Response.json({ error: 'SmartSuite API error na retries' }, { status: 502 });
     }
 
     const rawText = await recordsResp.text();
