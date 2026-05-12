@@ -113,7 +113,8 @@ export default function Dashboard() {
         console.log('Zoho contacts synced');
       }
     } catch (e) {
-      console.warn('Could not sync Zoho contacts:', e);
+      // Silently ignore - this is a background sync that shouldn't block the fetch
+      console.debug('Zoho contact sync skipped or rate limited');
     }
     
     const res = await fetchSmartSuiteRecords({

@@ -46,9 +46,15 @@ Deno.serve(async (req) => {
       });
       
       if (resp.status === 429) {
-        console.warn(`Rate limited on page ${page}, waiting 30 seconds...`);
-        await new Promise(r => setTimeout(r, 30000));
-        continue;
+        console.warn(`Rate limited on page ${page}, returning with ${allLeads.length} leads fetched so far`);
+        hasMore = false;
+        break;
+      }
+      
+      if (!resp.ok) {
+        console.warn(`Zoho API error ${resp.status} on page ${page}, stopping fetch`);
+        hasMore = false;
+        break;
       }
       
       const data = await resp.json();
