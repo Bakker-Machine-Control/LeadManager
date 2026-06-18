@@ -21,6 +21,14 @@
     "phone": {
       "type": "string"
     },
+    "phone_country": {
+      "type": "string",
+      "description": "Country code from SmartSuite phone field, e.g. NL, IE, AU"
+    },
+    "phone_e164": {
+      "type": "string",
+      "description": "Full international phone number in E.164 format, e.g. +31612345678"
+    },
     "company": {
       "type": "string"
     },

@@ -28,6 +28,8 @@ function mapRecord(record) {
     : (firstName || lastName || getStr(r.title) || getStr(r.name) || getStr(r.full_name) || smartsuiteId);
   const email = getStr(r.s19d20e4c1) || r.email || '';
   const phone = r.s2fc4c481d?.[0]?.sys_title || '';
+  const phoneCountry = r.s2fc4c481d?.[0]?.phone_country || '';
+  const phoneE164 = r.s0c5029009 || '';
   const city = r.s778b5be05?.location_city || '';
   const smartsuiteStatus = r.status?.value || '';
   const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
@@ -39,6 +41,8 @@ function mapRecord(record) {
     name: fullName,
     email,
     phone,
+    phone_country: phoneCountry,
+    phone_e164: phoneE164,
     company: '',
     city,
     smartsuite_status: smartsuiteStatus,

@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [sortDir, setSortDir] = useState('desc');
   const [filterZoho, setFilterZoho] = useState('all');
   const [filterSync, setFilterSync] = useState('all');
+  const [showAllCountries, setShowAllCountries] = useState(false);
 
   useEffect(() => {
     base44.entities.AppSettings.filter({ key: 'main' }).then(s => {
@@ -50,6 +51,8 @@ export default function Dashboard() {
         name: r.name || r.smartsuite_id,
         email: r.email || '',
         phone: r.phone || '',
+        phone_country: r.phone_country || '',
+        phone_e164: r.phone_e164 || '',
         company: r.company || '',
         city: r.city || '',
         smartsuite_status: r.smartsuite_status || '',
@@ -127,6 +130,8 @@ export default function Dashboard() {
 
         const email = ssStr(r.s19d20e4c1) || r.email || '';
         const phone = r.s2fc4c481d?.[0]?.sys_title || '';
+        const phoneCountry = r.s2fc4c481d?.[0]?.phone_country || '';
+        const phoneE164 = r.s0c5029009 || '';
         const city = r.s778b5be05?.location_city || '';
         const smartsuiteStatus = r.status?.value || '';
         const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
@@ -138,6 +143,8 @@ export default function Dashboard() {
           name: fullName,
           email,
           phone,
+          phone_country: phoneCountry,
+          phone_e164: phoneE164,
           company: '',
           city,
           smartsuite_status: smartsuiteStatus,
@@ -145,7 +152,7 @@ export default function Dashboard() {
           sync_status: syncStatuses[r.id]?.sync_status || 'pending',
           raw_data: r,
         };
-      }).filter(r => r.phone && r.phone.startsWith('+31'));
+      });
       setRecords(mapped);
       toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald. Zoho check bezig…` });
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
@@ -382,6 +389,11 @@ export default function Dashboard() {
       filtered = filtered.filter(r => r.sync_status === filterSync);
     }
 
+    // Default: only Netherlands (+31) unless "Show all" is toggled
+    if (!showAllCountries) {
+      filtered = filtered.filter(r => r.phone_country === 'NL');
+    }
+
     filtered.sort((a, b) => {
       let aVal = a[sortField] || '';
       let bVal = b[sortField] || '';
@@ -390,7 +402,7 @@ export default function Dashboard() {
     });
 
     return filtered;
-  }, [records, searchQuery, sortField, sortDir, filterZoho, filterSync]);
+  }, [records, searchQuery, sortField, sortDir, filterZoho, filterSync, showAllCountries]);
 
   const stats = [
     { label: 'Totaal', value: records.length, icon: Users, color: 'text-primary' },
@@ -492,6 +504,14 @@ export default function Dashboard() {
                 <SelectItem value="sync_status_asc">Sync status</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              variant={showAllCountries ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowAllCountries(p => !p)}
+              className="h-8 text-xs gap-1"
+            >
+              {showAllCountries ? '🌍 Alle landen (aan)' : '🇳🇱 Alleen NL'}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
