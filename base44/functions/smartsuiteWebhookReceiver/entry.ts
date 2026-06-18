@@ -32,6 +32,7 @@ function mapRecord(record) {
   const phoneE164 = typeof r.s0c5029009 === 'string' ? r.s0c5029009 : (r.s0c5029009?.sys_title || '');
   const city = r.s778b5be05?.location_city || '';
   const smartsuiteStatus = r.status?.value || '';
+  const company = getStr(r.sfbbd03935);
   const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
 
   return {
@@ -43,7 +44,7 @@ function mapRecord(record) {
     phone,
     phone_country: phoneCountry,
     phone_e164: phoneE164,
-    company: '',
+    company,
     city,
     smartsuite_status: smartsuiteStatus,
     lead_date: leadDate,

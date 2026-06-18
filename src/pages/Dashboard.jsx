@@ -47,6 +47,7 @@ export default function Dashboard() {
         // Fallback: extract phone_country/e164 from raw_data if not yet stored
         const phoneCountry = r.phone_country || r.raw_data?.s2fc4c481d?.[0]?.phone_country || '';
         const phoneE164 = r.phone_e164 || (typeof r.raw_data?.s0c5029009 === 'string' ? r.raw_data.s0c5029009 : r.raw_data?.s0c5029009?.sys_title) || '';
+        const company = r.company || (typeof r.raw_data?.sfbbd03935 === 'string' ? r.raw_data.sfbbd03935 : r.raw_data?.sfbbd03935?.value) || '';
         return {
           smartsuite_id: r.smartsuite_id,
           first_name: r.first_name || '',
@@ -56,7 +57,7 @@ export default function Dashboard() {
           phone: r.phone || '',
           phone_country: phoneCountry,
           phone_e164: phoneE164,
-          company: r.company || '',
+          company,
           city: r.city || '',
           smartsuite_status: r.smartsuite_status || '',
           lead_date: r.lead_date || '',
@@ -138,6 +139,7 @@ export default function Dashboard() {
         const phoneE164 = typeof r.s0c5029009 === 'string' ? r.s0c5029009 : (r.s0c5029009?.sys_title || '');
         const city = r.s778b5be05?.location_city || '';
         const smartsuiteStatus = r.status?.value || '';
+        const company = ssStr(r.sfbbd03935);
         const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
 
         return {
@@ -149,7 +151,7 @@ export default function Dashboard() {
           phone,
           phone_country: phoneCountry,
           phone_e164: phoneE164,
-          company: '',
+          company,
           city,
           smartsuite_status: smartsuiteStatus,
           lead_date: leadDate,
