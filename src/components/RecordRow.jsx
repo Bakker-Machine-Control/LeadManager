@@ -43,7 +43,7 @@ export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, 
         {record.lead_date ? (() => { try { return format(parseISO(record.lead_date), 'dd-MM-yyyy'); } catch { return record.lead_date; } })() : '—'}
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.email || '—'}</td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
+      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
         <div className="flex items-center gap-1">
           <span>{record.phone || '—'}</span>
           {record.phone && (
