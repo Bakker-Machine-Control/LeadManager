@@ -19,14 +19,13 @@ async function getZohoToken() {
 // Zoho upsert supports max 100 records per call
 async function upsertBatch(leads, domain, accessToken) {
   const zohoLeads = leads.map(lead => {
-    const nameParts = (lead.name || '').trim().split(/\s+/);
-    const firstName = nameParts[0] || 'Onbekend';
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
+    const firstName = lead.first_name || (lead.name || '').trim().split(/\s+/)[0] || 'Onbekend';
+    const lastName = lead.last_name || ((lead.name || '').trim().split(/\s+/).length > 1 ? (lead.name || '').trim().split(/\s+/).slice(1).join(' ') : firstName);
     const obj = {
       First_Name: firstName,
       Last_Name: lastName,
       Phone: lead.phone || '',
-      Company: lead.company || 'Onbekend',
+      Company: lead.company || '',
       City: lead.city || '',
       ...(lead.email ? { Email: lead.email } : {}),
       ...(lead.smartsuite_status ? { Lead_Status: lead.smartsuite_status } : {}),
@@ -56,7 +55,12 @@ async function upsertBatch(leads, domain, accessToken) {
     throw new Error('Zoho API rate limit bereikt. Wacht even en probeer het opnieuw.');
   }
   if (!resp.ok) {
-    throw new Error(`Zoho API error: ${resp.status}`);
+    let errorDetail = '';
+    try {
+      const errData = JSON.parse(rawText);
+      errorDetail = errData?.message || errData?.code || JSON.stringify(errData).substring(0, 200);
+    } catch { /* use status only */ }
+    throw new Error(`Zoho API error ${resp.status}: ${errorDetail || rawText.substring(0, 100)}`);
   }
   const respData = JSON.parse(rawText);
   return respData.data || [];
@@ -83,19 +87,27 @@ Deno.serve(async (req) => {
 
       batch.forEach((lead, idx) => {
         const resultItem = batchResults[idx];
-        const success = resultItem?.status === 'success' || resultItem?.code === 'SUCCESS';
-        // Build a meaningful error message if not successful
-        let message = resultItem?.message || 'Onbekende fout';
-        if (!success && resultItem?.details) {
-          const details = Object.entries(resultItem.details)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ');
-          message = `${message} (${details})`;
+        const success = resultItem?.code === 'SUCCESS';
+        const zohoId = resultItem?.details?.id || null;
+
+        let message;
+        if (success) {
+          message = 'OK';
+        } else {
+          message = resultItem?.message || `Zoho code: ${resultItem?.code || 'UNKNOWN'}`;
+          if (resultItem?.details) {
+            const details = Object.entries(resultItem.details)
+              .filter(([, v]) => v)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(', ');
+            if (details) message = `${message} (${details})`;
+          }
         }
+
         results.push({
           smartsuite_id: lead.smartsuite_id,
           success,
-          zoho_id: resultItem?.details?.id || null,
+          zoho_id: zohoId,
           message,
           raw: resultItem,
         });

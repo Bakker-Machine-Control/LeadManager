@@ -21,47 +21,46 @@ Deno.serve(async (req) => {
 
     const smartsuiteId = record.id;
     
-    // Extract fields (same logic as Dashboard)
-    function extractFieldValue(val) {
+    // Helper: get string from a smart field value
+    function getStr(val) {
       if (val === undefined || val === null || val === '') return '';
+      if (typeof val === 'string') return val;
       if (Array.isArray(val)) {
         const first = val[0];
         if (!first) return '';
         if (typeof first === 'string') return first;
-        return first.phone_number || first.value || first.name || String(first);
+        return first.sys_title || first.phone_number || first.value || first.name || '';
       }
       if (typeof val === 'object') {
-        if (val.location_city) return val.location_city;
-        if (val.sys_root) return val.sys_root.replace(/,\s*[\w\s]+$/, '').trim();
-        if (val.date) return val.date;
-        return val.value || val.name || val.label || '';
+        return val.location_city || val.sys_title || val.value || '';
       }
       return String(val);
     }
 
-    // Build lead data from record
+    const r = record;
+
+    // Use exact SmartSuite field slugs per user spec
+    const firstName = (r.s3430826e2?.first_name) || getStr(r.s527015a79) || '';
+    const lastName = r.s3430826e2?.last_name || '';
+    const fullName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || r.title || r.name || r.full_name || smartsuiteId);
+    const email = getStr(r.s19d20e4c1) || r.email || '';
+    const phone = r.s2fc4c481d?.[0]?.sys_title || '';
+    const city = r.s778b5be05?.location_city || '';
+    const country = getStr(r.s84ca80bb4);
+    const smartsuiteStatus = r.status?.value || '';
+
     const leadData = {
       smartsuite_id: smartsuiteId,
-      name: extractFieldValue(record.title || record.name || record.full_name) || smartsuiteId,
-      email: '',
-      phone: '',
+      first_name: firstName,
+      last_name: lastName,
+      name: fullName,
+      email,
+      phone,
       company: '',
-      city: '',
-      smartsuite_status: '',
+      city,
+      smartsuite_status: smartsuiteStatus,
       raw_data: record,
     };
-
-    // Try to find email, phone, company, city fields dynamically
-    for (const [key, val] of Object.entries(record)) {
-      if (key.startsWith('s') || key.startsWith('sf')) {
-        const v = extractFieldValue(val);
-        if (!v) continue;
-        const lower = v.toLowerCase();
-        if (!leadData.email && (lower.includes('@') || key.includes('email'))) leadData.email = v;
-        else if (!leadData.phone && /\d/.test(v) && v.length >= 8 && v.length <= 15) leadData.phone = v;
-        else if (!leadData.company && v.length > 2 && !lower.includes('@')) leadData.company = v;
-      }
-    }
 
     // Check if record already exists
     const existing = await base44.asServiceRole.entities.SyncedRecord.filter({ smartsuite_id: smartsuiteId });

@@ -14,41 +14,6 @@ import RecordRow from '@/components/RecordRow';
 import SyncLogPanel from '@/components/SyncLogPanel';
 import LeadDetailModal from '@/components/LeadDetailModal';
 
-function extractFieldValue(val) {
-  if (val === undefined || val === null || val === '') return '';
-  if (Array.isArray(val)) {
-    const first = val[0];
-    if (!first) return '';
-    if (typeof first === 'string') return first;
-    return first.phone_number || first.value || first.name || String(first);
-  }
-  if (typeof val === 'object') {
-    if (val.location_city) return val.location_city;
-    if (val.sys_root) return val.sys_root.replace(/,\s*[\w\s]+$/, '').trim();
-    if (val.date) return val.date;
-    return val.value || val.name || val.label || '';
-  }
-  return String(val);
-}
-
-function extractField(record, slugs) {
-  for (const slug of slugs) {
-    const val = record[slug];
-    if (val === undefined || val === null || val === '') continue;
-    const extracted = extractFieldValue(val);
-    if (extracted) return extracted;
-  }
-  return '';
-}
-
-// Find slug by matching label keywords
-function findSlugByLabel(fieldLabels, keywords) {
-  const entry = Object.entries(fieldLabels).find(([, label]) =>
-    keywords.some(kw => label.toLowerCase().includes(kw.toLowerCase()))
-  );
-  return entry ? entry[0] : null;
-}
-
 export default function Dashboard() {
   const { toast } = useToast();
   const [settings, setSettings] = useState(null);
@@ -79,13 +44,15 @@ export default function Dashboard() {
       // Load historical records into the table on startup
       const historical = existing.map(r => ({
         smartsuite_id: r.smartsuite_id,
-        name: r.name || (r.raw_data ? extractField(r.raw_data, ['s3430826e2', 'title', 'name', 'full_name', 'contact_name', 'Name']) : '') || r.smartsuite_id,
+        first_name: r.first_name || '',
+        last_name: r.last_name || '',
+        name: r.name || r.smartsuite_id,
         email: r.email || '',
         phone: r.phone || '',
         company: r.company || '',
         city: r.city || '',
         smartsuite_status: r.smartsuite_status || '',
-        lead_date: r.lead_date || (r.raw_data ? (r.raw_data.s9642641d7?.date || r.raw_data.first_created?.on) : null) || '',
+        lead_date: r.lead_date || '',
         sync_status: r.sync_status || 'pending',
         zoho_lead_id: r.zoho_lead_id || '',
         raw_data: r.raw_data || {},
@@ -132,28 +99,52 @@ export default function Dashboard() {
       const fl = res.data?.fieldLabels || {};
       if (res.data?.fieldLabels) setFieldLabels(fl);
 
-      // Dynamically find slugs by label keywords
-      const citySlug = findSlugByLabel(fl, ['city', 'stad', 'woonplaats', 'gemeente', 'place', 'location', 'plaats']);
-      const dateSlug = findSlugByLabel(fl, ['date', 'datum', 'lead date', 'created', 'aangemaakt', 'submission', 'inzending', 'ontvangen']);
-      const emailSlug = findSlugByLabel(fl, ['email', 'e-mail', 'emailadres', 'mail']);
-      const phoneSlug = findSlugByLabel(fl, ['phone', 'telefoon', 'mobile', 'mobiel', 'gsm', 'tel']);
-      const companySlug = findSlugByLabel(fl, ['company', 'bedrijf', 'organization', 'organisatie', 'firma']);
-      const nameSlug = findSlugByLabel(fl, ['name', 'naam', 'full name', 'contact name', 'voornaam']);
+      // Helper: get string from SmartSuite field value
+      function ssStr(val) {
+        if (val === undefined || val === null || val === '') return '';
+        if (typeof val === 'string') return val;
+        if (Array.isArray(val)) {
+          const first = val[0];
+          if (!first) return '';
+          if (typeof first === 'string') return first;
+          return first.sys_title || first.phone_number || first.value || first.name || '';
+        }
+        if (typeof val === 'object') {
+          return val.location_city || val.sys_title || val.value || val.date || '';
+        }
+        return String(val);
+      }
 
-      console.log('Detected slugs:', { nameSlug, emailSlug, phoneSlug, companySlug, citySlug, dateSlug });
+      const mapped = items.map(item => {
+        const r = item; // shorthand
 
-      const mapped = items.map(item => ({
-        smartsuite_id: item.id,
-        name: extractField(item, [...(nameSlug ? [nameSlug] : []), 's3430826e2', 'title', 'name', 'full_name', 'contact_name']),
-        email: extractField(item, [...(emailSlug ? [emailSlug] : []), 's19d20e4c1', 's6299218c9', 'sf99925cfb', 'email', 'email_address']),
-        phone: extractField(item, [...(phoneSlug ? [phoneSlug] : []), 'sc8d719ad3', 's0c5029009', 's2fc4c481d', 'phone', 'phone_number', 'mobile']),
-        company: extractField(item, [...(companySlug ? [companySlug] : []), 'sfbbd03935', 's18939601b', 'company', 'company_name', 'organization']),
-        city: extractField(item, [...(citySlug ? [citySlug] : []), 's778b5be05', 'city', 'stad', 'woonplaats', 'location']),
-        smartsuite_status: extractField(item, ['status', 'lead_status', 'Status']),
-        lead_date: (dateSlug ? extractFieldValue(item[dateSlug]) : '') || item.s9642641d7?.date || item.first_created?.on || '',
-        sync_status: syncStatuses[item.id]?.sync_status || 'pending',
-        raw_data: item,
-      })).filter(r => r.phone && r.phone.startsWith('+31'));
+        const firstName = (r.s3430826e2?.first_name) || ssStr(r.s527015a79) || '';
+        const lastName = r.s3430826e2?.last_name || '';
+        const fullName = firstName && lastName
+          ? `${firstName} ${lastName}`
+          : (firstName || lastName || ssStr(r.title) || ssStr(r.name) || ssStr(r.full_name) || r.id);
+
+        const email = ssStr(r.s19d20e4c1) || r.email || '';
+        const phone = r.s2fc4c481d?.[0]?.sys_title || '';
+        const city = r.s778b5be05?.location_city || '';
+        const smartsuiteStatus = r.status?.value || '';
+        const leadDate = ssStr(r.s9642641d7) || r.first_created?.on || '';
+
+        return {
+          smartsuite_id: r.id,
+          first_name: firstName,
+          last_name: lastName,
+          name: fullName,
+          email,
+          phone,
+          company: '',
+          city,
+          smartsuite_status: smartsuiteStatus,
+          lead_date: leadDate,
+          sync_status: syncStatuses[r.id]?.sync_status || 'pending',
+          raw_data: r,
+        };
+      }).filter(r => r.phone && r.phone.startsWith('+31'));
       setRecords(mapped);
       toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald. Zoho check bezig…` });
       await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
@@ -170,6 +161,7 @@ export default function Dashboard() {
 
         mapped.forEach(r => {
           const { sync_status, raw_data, smartsuite_status, ...fields } = r;
+          // fields now includes first_name, last_name, name, email, phone, company, city, lead_date
           if (existingMap[r.smartsuite_id]) {
             toUpdate.push({ id: existingMap[r.smartsuite_id].id, data: { ...fields, raw_data, smartsuite_status } });
           } else {
