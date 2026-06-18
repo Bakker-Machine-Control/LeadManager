@@ -128,7 +128,7 @@ export default function Dashboard() {
         const phone = r.s2fc4c481d?.[0]?.sys_title || '';
         const city = r.s778b5be05?.location_city || '';
         const smartsuiteStatus = r.status?.value || '';
-        const leadDate = ssStr(r.s9642641d7) || r.first_created?.on || '';
+        const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
 
         return {
           smartsuite_id: r.id,

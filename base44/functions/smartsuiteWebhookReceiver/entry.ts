@@ -30,6 +30,7 @@ function mapRecord(record) {
   const phone = r.s2fc4c481d?.[0]?.sys_title || '';
   const city = r.s778b5be05?.location_city || '';
   const smartsuiteStatus = r.status?.value || '';
+  const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
 
   return {
     smartsuite_id: smartsuiteId,
@@ -41,6 +42,7 @@ function mapRecord(record) {
     company: '',
     city,
     smartsuite_status: smartsuiteStatus,
+    lead_date: leadDate,
     raw_data: record,
   };
 }
