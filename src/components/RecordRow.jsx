@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatusBadge from './StatusBadge';
-import { RefreshCw, CheckCircle2, AlertCircle, MinusCircle, Eye, Copy } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, MinusCircle, Eye, Copy, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SMARTSUITE_STATUSES = [
@@ -54,7 +54,20 @@ export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, 
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{record.company || '—'}</td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">{record.city || '—'}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">
+        {record.city ? (
+          <a
+            href={`https://www.google.com/maps/search/${encodeURIComponent(record.city)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+            onClick={e => e.stopPropagation()}
+          >
+            <MapPin className="w-3 h-3" />
+            {record.city}
+          </a>
+        ) : '—'}
+      </td>
       <td className="px-4 py-3">
         {record.zoho_exists === true ? (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
