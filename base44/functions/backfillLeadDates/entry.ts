@@ -26,15 +26,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    const BATCH_SIZE = 200;
+    const BATCH_SIZE = 50;
+    const UPDATE_DELAY = 1000;   // 1 second between individual updates
+    const BATCH_DELAY = 5000;    // 5 seconds between batches
+    const RATE_LIMIT_PAUSE = 15000; // 15 second cooldown after rate limit
+
     let skip = 0;
     let totalUpdated = 0;
     let totalChecked = 0;
+    let consecutiveErrors = 0;
+    const MAX_CONSECUTIVE_ERRORS = 5;
 
-    // Initial delay to avoid burst
-    await new Promise(r => setTimeout(r, 200));
+    // Initial delay
+    await new Promise(r => setTimeout(r, 500));
 
     while (true) {
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        console.error(`Aborting after ${consecutiveErrors} consecutive errors at skip=${skip}`);
+        break;
+      }
+
       try {
         const records = await base44.asServiceRole.entities.SyncedRecord.list('-created_date', BATCH_SIZE, skip);
         if (records.length === 0) break;
@@ -65,22 +76,41 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update sequentially with delays
+        // Update sequentially with delays + rate-limit backoff
         for (const u of updates) {
-          const { id, ...patch } = u;
-          await base44.asServiceRole.entities.SyncedRecord.update(id, patch);
-          await new Promise(r => setTimeout(r, 100));
+          try {
+            const { id, ...patch } = u;
+            await base44.asServiceRole.entities.SyncedRecord.update(id, patch);
+            totalUpdated++;
+            consecutiveErrors = 0;
+          } catch (updateErr) {
+            console.error(`Update error for record ${u.id}:`, updateErr.message);
+            if (updateErr.message?.includes('Rate limit')) {
+              // Pause after rate limit, then retry this record
+              await new Promise(r => setTimeout(r, RATE_LIMIT_PAUSE));
+              try {
+                const { id, ...patch } = u;
+                await base44.asServiceRole.entities.SyncedRecord.update(id, patch);
+                totalUpdated++;
+              } catch (retryErr) {
+                console.error(`Retry also failed for ${u.id}:`, retryErr.message);
+              }
+            }
+            // Skip record if it still fails
+          }
+          await new Promise(r => setTimeout(r, UPDATE_DELAY));
         }
 
-        totalUpdated += updates.length;
+        consecutiveErrors = 0;
         skip += BATCH_SIZE;
+        await new Promise(r => setTimeout(r, BATCH_DELAY));
 
-        // Delay between batches
-        await new Promise(r => setTimeout(r, 1000));
       } catch (e) {
         console.error(`Batch error at skip=${skip}:`, e.message);
-        // Wait longer and retry the same batch
-        await new Promise(r => setTimeout(r, 2000));
+        consecutiveErrors++;
+        // Skip this batch and move on
+        skip += BATCH_SIZE;
+        await new Promise(r => setTimeout(r, RATE_LIMIT_PAUSE));
       }
     }
 
