@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { RefreshCw, Zap, Users, CheckCircle2, AlertCircle, Search, ArrowUpDown } from 'lucide-react';
+import { RefreshCw, Zap, Users, CheckCircle2, AlertCircle, Search, ArrowUpDown, Calendar } from 'lucide-react';
 import RecordRow from '@/components/RecordRow';
 import SyncLogPanel from '@/components/SyncLogPanel';
 import LeadDetailModal from '@/components/LeadDetailModal';
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [fetching, setFetching] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
   const [syncingId, setSyncingId] = useState(null);
+  const [backfilling, setBackfilling] = useState(false);
   const [logRefresh, setLogRefresh] = useState(0);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [fieldLabels, setFieldLabels] = useState({});
@@ -318,6 +319,24 @@ export default function Dashboard() {
     setSyncingAll(false);
   };
 
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    toast({ title: 'Backfill gestart', description: 'lead_date wordt ingevuld uit opgeslagen raw_data… dit kan even duren.' });
+    try {
+      const res = await base44.functions.invoke('backfillLeadDates', {});
+      const data = res.data;
+      if (data?.ok) {
+        toast({ title: 'Backfill voltooid', description: data.message });
+        setLogRefresh(p => p + 1);
+      } else {
+        toast({ title: 'Backfill mislukt', description: data?.error || 'Onbekende fout', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Backfill mislukt', description: e.message || 'Netwerkfout', variant: 'destructive' });
+    }
+    setBackfilling(false);
+  };
+
   const handleSaveNotes = async (rec, notes) => {
     const { raw_data, ...leadData } = rec;
     const result = await doSync({ ...leadData, notes, raw_data });
@@ -396,6 +415,10 @@ export default function Dashboard() {
           <Button onClick={handleSyncAll} disabled={syncingAll || records.length === 0} className="gap-2">
             <Zap className="w-4 h-4" />
             {syncingAll ? 'Synchroniseren…' : 'Alles synchroniseren'}
+          </Button>
+          <Button variant="outline" onClick={handleBackfill} disabled={backfilling} className="gap-2">
+            <Calendar className={`w-4 h-4 ${backfilling ? 'animate-spin' : ''}`} />
+            {backfilling ? 'Backfill…' : 'Backfill datums'}
           </Button>
         </div>
       </div>
