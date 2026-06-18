@@ -47,7 +47,7 @@ export default function Dashboard() {
       const historical = existing.map(r => {
         // Fallback: extract phone_country/e164 from raw_data if not yet stored
         const phoneCountry = r.phone_country || r.raw_data?.s2fc4c481d?.[0]?.phone_country || '';
-        const phoneE164 = r.phone_e164 || r.raw_data?.s0c5029009 || '';
+        const phoneE164 = r.phone_e164 || (typeof r.raw_data?.s0c5029009 === 'string' ? r.raw_data.s0c5029009 : r.raw_data?.s0c5029009?.sys_title) || '';
         return {
           smartsuite_id: r.smartsuite_id,
           first_name: r.first_name || '',
@@ -136,7 +136,7 @@ export default function Dashboard() {
         const email = ssStr(r.s19d20e4c1) || r.email || '';
         const phone = r.s2fc4c481d?.[0]?.sys_title || '';
         const phoneCountry = r.s2fc4c481d?.[0]?.phone_country || '';
-        const phoneE164 = r.s0c5029009 || '';
+        const phoneE164 = typeof r.s0c5029009 === 'string' ? r.s0c5029009 : (r.s0c5029009?.sys_title || '');
         const city = r.s778b5be05?.location_city || '';
         const smartsuiteStatus = r.status?.value || '';
         const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';

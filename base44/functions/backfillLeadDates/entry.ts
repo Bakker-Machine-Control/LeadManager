@@ -13,7 +13,7 @@ function extractPhoneMeta(raw) {
   if (phoneObj && Array.isArray(phoneObj) && phoneObj[0]) {
     phoneCountry = phoneObj[0].phone_country || '';
   }
-  phoneE164 = raw.s0c5029009 || '';
+  phoneE164 = typeof raw.s0c5029009 === 'string' ? raw.s0c5029009 : (raw.s0c5029009?.sys_title || '');
   if (!phoneCountry && !phoneE164) return null;
   return { phone_country: phoneCountry, phone_e164: phoneE164 };
 }

@@ -29,7 +29,7 @@ function mapRecord(record) {
   const email = getStr(r.s19d20e4c1) || r.email || '';
   const phone = r.s2fc4c481d?.[0]?.sys_title || '';
   const phoneCountry = r.s2fc4c481d?.[0]?.phone_country || '';
-  const phoneE164 = r.s0c5029009 || '';
+  const phoneE164 = typeof r.s0c5029009 === 'string' ? r.s0c5029009 : (r.s0c5029009?.sys_title || '');
   const city = r.s778b5be05?.location_city || '';
   const smartsuiteStatus = r.status?.value || '';
   const leadDate = r.s0ad5216a6?.date || r.s9bafef72f?.date || r.first_created?.on || '';
