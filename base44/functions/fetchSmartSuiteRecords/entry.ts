@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
-    // Fetch with retry logic for rate limits
-    const MAX_RETRIES = 3;
+    // Fetch with retry logic for rate limits (5 retries, longer backoff)
+    const MAX_RETRIES = 5;
     let recordsResp, structureResp;
     
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -53,23 +53,25 @@ Deno.serve(async (req) => {
         if (recordsResp.ok) break; // Success, exit retry loop
         
         const errText = await recordsResp.text();
-        const isRateLimit = recordsResp.status === 429 || errText.includes('Just a moment') || errText.includes('challenge');
+        console.log(`Attempt ${attempt + 1}: status=${recordsResp.status}, body_start=${errText.substring(0, 200)}`);
+        const isRateLimit = recordsResp.status === 429 || errText.includes('Just a moment') || errText.includes('challenge') || errText.includes('cf-');
         
         if (isRateLimit && attempt < MAX_RETRIES - 1) {
-          // Exponential backoff: 2s, 4s, 8s
-          const delayMs = Math.pow(2, attempt + 1) * 1000;
-          console.log(`Rate limit hit, retry ${attempt + 1}/${MAX_RETRIES} after ${delayMs}ms`);
+          // Longer exponential backoff: 5s, 10s, 20s, 40s
+          const delayMs = Math.pow(2, attempt) * 5000;
+          console.log(`Rate limit hit, retry ${attempt + 1}/${MAX_RETRIES} after ${delayMs/1000}s`);
           await new Promise(r => setTimeout(r, delayMs));
           continue;
         }
         
         if (isRateLimit) {
-          return Response.json({ error: 'SmartSuite API rate limit bereikt (Cloudflare). Probeer later opnieuw.' }, { status: 429 });
+          return Response.json({ error: 'SmartSuite API rate limit bereikt (Cloudflare). Wacht even en probeer het opnieuw.' }, { status: 429 });
         }
-        return Response.json({ error: `SmartSuite API error: ${recordsResp.status}` }, { status: 502 });
+        return Response.json({ error: `SmartSuite API error: ${recordsResp.status} - ${errText.substring(0, 100)}` }, { status: 502 });
       } catch (fetchError) {
+        console.log(`Fetch error attempt ${attempt + 1}: ${fetchError.message}`);
         if (attempt === MAX_RETRIES - 1) throw fetchError;
-        await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000));
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 5000));
       }
     }
 
