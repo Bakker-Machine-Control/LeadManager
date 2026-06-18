@@ -137,6 +137,47 @@ export default function Settings() {
 
   return (
     <div className="p-8 max-w-2xl mx-auto space-y-6">
+
+      {/* Project Description */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">FlowBridge Sync — SmartSuite → Zoho lead-pijplijn</CardTitle>
+          <CardDescription className="text-sm">Haalt leads uit SmartSuite, toont ze in dit dashboard, en synct ze naar Zoho CRM.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm leading-relaxed">
+          <div>
+            <h3 className="font-semibold mb-1">Architectuur (waarom via een Mac)</h3>
+            <p className="text-muted-foreground">
+              SmartSuite blokkeert het server-IP van base44 (sinds ongeveer april 2026), dus base44 kan niet zelf ophalen. 
+              Het ophalen loopt daarom via een vaste machine (Mac Studio, IP <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">209.198.140.208</code> — dit IP moet in SmartSuite gewhitelist staan).
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2">Hoe de sync werkt</h3>
+            <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Fetch (Mac):</strong> launchd-taak <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">com.bmc.leadbridge</code> draait dagelijks om 07:30, 
+                script <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">~/leadbridge/smartsuite-to-base44.mjs</code>. 
+                Haalt alle records op (paginatie van 200) en POST ze in batches van 100 naar de webhook (voorkomt 429 rate-limit).
+              </li>
+              <li>
+                <strong className="text-foreground">Webhook (smartsuiteWebhookReceiver):</strong> upsert op smartsuite_id naar SyncedRecord met sync_status "pending". 
+                Mapping uit SmartSuite raw_data: naam, e-mail, telefoon (incl. landcode en E164-nummer), plaats, lead_date en smartsuite_status.
+              </li>
+              <li>
+                <strong className="text-foreground">Dashboard:</strong> toont de leads, standaard gefilterd op +31 (Nederland); met een toggle om alle landen te tonen.
+              </li>
+              <li>
+                <strong className="text-foreground">Zoho-sync:</strong> aparte stap via een dashboard-knop. Maakt leads aan in Zoho CRM en vult zoho_lead_id + sync_status "synced".
+              </li>
+              <li>
+                <strong className="text-foreground">Backfill-knop:</strong> vult lead_date en landcode op bestaande records uit de al opgeslagen raw_data.
+              </li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
+
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Settings2 className="w-6 h-6 text-primary" /> Settings
