@@ -44,23 +44,28 @@ export default function Dashboard() {
       existing.forEach(r => { map[r.smartsuite_id] = { id: r.id, sync_status: r.sync_status, zoho_lead_id: r.zoho_lead_id }; });
       setSyncStatuses(map);
       // Load historical records into the table on startup
-      const historical = existing.map(r => ({
-        smartsuite_id: r.smartsuite_id,
-        first_name: r.first_name || '',
-        last_name: r.last_name || '',
-        name: r.name || r.smartsuite_id,
-        email: r.email || '',
-        phone: r.phone || '',
-        phone_country: r.phone_country || '',
-        phone_e164: r.phone_e164 || '',
-        company: r.company || '',
-        city: r.city || '',
-        smartsuite_status: r.smartsuite_status || '',
-        lead_date: r.lead_date || '',
-        sync_status: r.sync_status || 'pending',
-        zoho_lead_id: r.zoho_lead_id || '',
-        raw_data: r.raw_data || {},
-      }));
+      const historical = existing.map(r => {
+        // Fallback: extract phone_country/e164 from raw_data if not yet stored
+        const phoneCountry = r.phone_country || r.raw_data?.s2fc4c481d?.[0]?.phone_country || '';
+        const phoneE164 = r.phone_e164 || r.raw_data?.s0c5029009 || '';
+        return {
+          smartsuite_id: r.smartsuite_id,
+          first_name: r.first_name || '',
+          last_name: r.last_name || '',
+          name: r.name || r.smartsuite_id,
+          email: r.email || '',
+          phone: r.phone || '',
+          phone_country: phoneCountry,
+          phone_e164: phoneE164,
+          company: r.company || '',
+          city: r.city || '',
+          smartsuite_status: r.smartsuite_status || '',
+          lead_date: r.lead_date || '',
+          sync_status: r.sync_status || 'pending',
+          zoho_lead_id: r.zoho_lead_id || '',
+          raw_data: r.raw_data || {},
+        };
+      });
       setRecords(historical);
     });
   }, []);
