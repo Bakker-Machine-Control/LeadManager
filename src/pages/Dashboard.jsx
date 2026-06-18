@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { fetchSmartSuiteRecords } from '@/functions/fetchSmartSuiteRecords';
+import { syncToZohoCRM } from '@/functions/syncToZohoCRM';
 import { checkZohoDuplicates } from '@/functions/checkZohoDuplicates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -222,17 +223,34 @@ export default function Dashboard() {
   const handleSyncOne = async (rec) => {
     setSyncingId(rec.smartsuite_id);
     try {
+      // Strip raw_data and UI-only fields before sending to Zoho
+      const { raw_data, sync_status, smartsuite_status, zoho_exists, zoho_match, lead_date, ...cleanLead } = rec;
+      const res = await syncToZohoCRM({
+        zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+        leads: [cleanLead],
+      });
+      const result = res.data?.results?.[0];
+      const success = result?.success;
+      const zohoId = result?.zoho_id || rec.zoho_lead_id || '';
+
       const found = await base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id });
-      const payload = { sync_status: 'synced', last_synced_at: new Date().toISOString() };
+      const updatePayload = { 
+        sync_status: success ? 'synced' : 'error',
+        sync_error: success ? '' : (result?.message || ''),
+        zoho_lead_id: zohoId,
+        last_synced_at: new Date().toISOString(),
+      };
       if (found.length > 0) {
-        await base44.entities.SyncedRecord.update(found[0].id, payload);
-        setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], sync_status: 'synced' } }));
+        await base44.entities.SyncedRecord.update(found[0].id, updatePayload);
+        setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], sync_status: updatePayload.sync_status, zoho_lead_id: zohoId } }));
       }
-      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: 'synced' } : r));
-      await logAction('sync', 'success', `Lokaal gesynchroniseerd: "${rec.name}"`, 1);
-      toast({ title: 'Gesynchroniseerd!', description: `"${rec.name}" lokaal opgeslagen` });
+      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: updatePayload.sync_status, ...(success && { zoho_exists: true, zoho_match: rec.email ? 'Email' : 'Phone' }) } : r));
+      await logAction('sync', success ? 'success' : 'error', success ? `Gesynchroniseerd naar Zoho: "${rec.name}"` : `Zoho sync mislukt: ${result?.message}`, 1);
+      toast({ title: success ? 'Gesynchroniseerd!' : 'Sync mislukt', description: success ? `"${rec.name}" → Zoho CRM` : result?.message || '', variant: success ? 'default' : 'destructive' });
     } catch (e) {
-      toast({ title: 'Sync mislukt', description: e.message, variant: 'destructive' });
+      const msg = e?.response?.data?.error || e.message || 'Netwerkfout';
+      await logAction('sync', 'error', `Sync error voor "${rec.name}": ${msg}`, 1);
+      toast({ title: 'Sync mislukt', description: msg, variant: 'destructive' });
     }
     setSyncingId(null);
   };
@@ -241,38 +259,61 @@ export default function Dashboard() {
     if (!records.length) return;
     setSyncingAll(true);
 
+    const CHUNK_SIZE = 50;
     let successCount = 0, errorCount = 0;
 
-    // Process sequentially in small chunks to avoid rate limits
-    const CHUNK_SIZE = 20;
-    const chunks = [];
     for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-      chunks.push(records.slice(i, i + CHUNK_SIZE));
-    }
+      const chunk = records.slice(i, i + CHUNK_SIZE);
+      const cleanLeads = chunk.map(rec => {
+        const { raw_data, sync_status, smartsuite_status, zoho_exists, zoho_match, lead_date, ...clean } = rec;
+        return clean;
+      });
 
-    for (const chunk of chunks) {
-      for (const rec of chunk) {
-        try {
-          const found = await base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id });
-          if (found.length > 0) {
-            await base44.entities.SyncedRecord.update(found[0].id, { sync_status: 'synced', last_synced_at: new Date().toISOString() });
-            setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], sync_status: 'synced' } }));
-          }
-          setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: 'synced' } : r));
+      const res = await syncToZohoCRM({
+        zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+        leads: cleanLeads,
+      });
+
+      const results = res.data?.results || [];
+      results.forEach((result, idx) => {
+        const rec = cleanLeads[idx];
+        if (!rec) return;
+        const success = result?.success;
+        if (success) {
           successCount++;
-        } catch (e) {
+          base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id }).then(found => {
+            if (found.length > 0) {
+              base44.entities.SyncedRecord.update(found[0].id, { 
+                sync_status: 'synced', zoho_lead_id: result.zoho_id || '', last_synced_at: new Date().toISOString() 
+              });
+            }
+          });
+        } else {
           errorCount++;
+          base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id }).then(found => {
+            if (found.length > 0) {
+              base44.entities.SyncedRecord.update(found[0].id, { sync_status: 'error', sync_error: result?.message || '' });
+            }
+          });
         }
-      }
-      // Pause between chunks
-      if (chunks.indexOf(chunk) < chunks.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
+      });
+
+      // Update UI
+      setRecords(prev => prev.map(r => {
+        const match = results.find((res, idx) => cleanLeads[idx]?.smartsuite_id === r.smartsuite_id);
+        if (match?.success) return { ...r, sync_status: 'synced', zoho_exists: true, zoho_match: r.email ? 'Email' : 'Phone' };
+        if (match && !match.success) return { ...r, sync_status: 'error' };
+        return r;
+      }));
+
+      if (i + CHUNK_SIZE < records.length) {
+        await new Promise(r => setTimeout(r, 2000));
       }
     }
 
     const status = errorCount === 0 ? 'success' : successCount === 0 ? 'error' : 'partial';
-    await logAction('sync_all', status, `Sync all lokaal: ${successCount} gelukt, ${errorCount} mislukt`, records.length);
-    toast({ title: 'Sync klaar', description: `${successCount} lokaal gesynchroniseerd${errorCount > 0 ? `, ${errorCount} mislukt` : ''}` });
+    await logAction('sync_all', status, `Sync all naar Zoho: ${successCount} gelukt, ${errorCount} mislukt`, records.length);
+    toast({ title: 'Sync klaar', description: `${successCount} → Zoho CRM${errorCount > 0 ? `, ${errorCount} mislukt` : ''}` });
     setSyncingAll(false);
   };
 
@@ -296,15 +337,27 @@ export default function Dashboard() {
 
   const handleSaveNotes = async (rec, notes) => {
     try {
+      const { raw_data, sync_status, smartsuite_status, zoho_exists, zoho_match, lead_date, ...cleanLead } = rec;
+      const res = await syncToZohoCRM({
+        zoho_api_domain: settings?.zoho_api_domain || 'https://www.zohoapis.eu',
+        leads: [{ ...cleanLead, notes }],
+      });
+      const result = res.data?.results?.[0];
+      const success = result?.success;
+
       const found = await base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id });
       if (found.length > 0) {
-        await base44.entities.SyncedRecord.update(found[0].id, { sync_status: 'synced', last_synced_at: new Date().toISOString() });
-        setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], sync_status: 'synced' } }));
+        await base44.entities.SyncedRecord.update(found[0].id, { 
+          sync_status: success ? 'synced' : 'error',
+          zoho_lead_id: result?.zoho_id || rec.zoho_lead_id || '',
+          last_synced_at: new Date().toISOString(),
+        });
+        setSyncStatuses(p => ({ ...p, [rec.smartsuite_id]: { ...p[rec.smartsuite_id], sync_status: success ? 'synced' : 'error' } }));
       }
-      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: 'synced' } : r));
-      toast({ title: 'Opmerking opgeslagen!', description: `"${rec.name}" lokaal bijgewerkt` });
+      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, sync_status: success ? 'synced' : 'error' } : r));
+      toast({ title: success ? 'Opmerking gesynchroniseerd!' : 'Opslaan mislukt', description: success ? 'Opmerking naar Zoho CRM' : result?.message || '', variant: success ? 'default' : 'destructive' });
     } catch (e) {
-      toast({ title: 'Opslaan mislukt', description: e.message, variant: 'destructive' });
+      toast({ title: 'Opslaan mislukt', description: e?.response?.data?.error || e.message, variant: 'destructive' });
     }
   };
 
