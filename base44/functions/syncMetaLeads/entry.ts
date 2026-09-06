@@ -33,30 +33,29 @@ async function fetchAll(url) {
 
 // Zet een Meta leadgen-lead om naar een Lead-record
 function mapLead(metaLead, formulierNaam) {
-  const fields = {};
+  // Vertaal de Meta-veldnamen naar bekende Lead-velden
+  const velden = {};
+  const vrijeVragen = [];
   for (const fd of metaLead.field_data || []) {
-    fields[fd.name] = (fd.values || []).join(', ');
+    const waarde = (fd.values || []).join(', ');
+    const alias = VELD_ALIASEN[fd.name.toLowerCase()];
+    if (alias) velden[alias] = waarde;
+    else if (waarde) vrijeVragen.push(`${fd.name}: ${waarde}`);
   }
 
-  const naam = fields.full_name || '';
+  const naam = velden.naam || '';
   const spatie = naam.indexOf(' ');
-
-  // Vrije-vraag-antwoorden samenvoegen als aangeleverde tekst
-  const vrijeTekst = Object.entries(fields)
-    .filter(([k]) => !BEKENDE_VELDEN.includes(k))
-    .map(([k, v]) => `${k}: ${v}`)
-    .join('\n');
 
   return {
     smartsuite_id: `meta_${metaLead.id}`, // verplicht veld; eigen prefix zodat Meta-leads herkenbaar zijn
     name: naam,
     first_name: spatie > 0 ? naam.slice(0, spatie) : naam,
     last_name: spatie > 0 ? naam.slice(spatie + 1) : '',
-    email: fields.email || '',
-    phone: fields.phone_number || '',
-    phone_e164: (fields.phone_number || '').replace(/\s+/g, ''),
-    company: fields.company_name || '',
-    city: fields.city || '',
+    email: velden.email || '',
+    phone: velden.telefoon || '',
+    phone_e164: (velden.telefoon || '').replace(/\s+/g, ''),
+    company: velden.bedrijf || '',
+    city: velden.plaats || '',
     status: 'Nieuw',
     lead_date: metaLead.created_time || '',
     bron: 'meta',
@@ -66,7 +65,7 @@ function mapLead(metaLead, formulierNaam) {
     campagne: metaLead.campaign_name || '',
     formulier: formulierNaam,
     platform: metaLead.platform || '',
-    aangeleverde_tekst: vrijeTekst || '',
+    aangeleverde_tekst: vrijeVragen.join('\n'),
     raw_data: { bron: 'meta_leadgen', field_data: metaLead.field_data || [] },
   };
 }
