@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 const sections = [
   { title: 'Live bezoekers', icon: Users, description: 'Huidige pagina, geschatte locatie en tijd op de website.' },
   { title: 'Bezoekgeschiedenis', icon: History, description: 'Eerdere bezoeken, bekeken pagina’s en koppeling aan een lead.' },
-  { title: 'Chat', icon: MessageSquare, description: 'Gesprekken met bezoekers vanuit FlowBridge.' },
+  { title: 'Chat', icon: MessageSquare, description: 'Gesprekken met bezoekers vanuit de BMC Sales tool.' },
   { title: 'Meldingen', icon: Bell, description: 'Pushmeldingen voor nieuwe bezoekers op je Mac en iPhone.' },
 ];
 
@@ -39,7 +39,7 @@ export default function Website() {
       <Card>
         <CardHeader><CardTitle>Alle websitecontacten op één plek</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>Dit wordt het overzicht voor websitebezoekers en gesprekken binnen FlowBridge.</p>
+          <p>Dit wordt het overzicht voor websitebezoekers en gesprekken binnen de BMC Sales tool.</p>
           <p>De website is nog niet gekoppeld. Er worden hier nog geen bezoeken geregistreerd en er worden nog geen pushmeldingen verstuurd.</p>
         </CardContent>
       </Card>
