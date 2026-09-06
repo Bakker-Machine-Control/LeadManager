@@ -1,4 +1,6 @@
-import { Globe, Users, History, MessageSquare, Bell } from 'lucide-react';
+import { Globe, Users, History, MessageSquare, Bell, MapPin } from 'lucide-react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const sections = [
@@ -7,6 +9,18 @@ const sections = [
   { title: 'Chat', icon: MessageSquare, description: 'Gesprekken met bezoekers vanuit FlowBridge.' },
   { title: 'Meldingen', icon: Bell, description: 'Pushmeldingen voor nieuwe bezoekers op je Mac en iPhone.' },
 ];
+
+function MapViews() {
+  const map = useMap();
+  return (
+    <div className="absolute top-3 right-3 z-[1000] flex gap-2">
+      <button type="button" onClick={() => map.setView([52.2, 5.3], 7)}
+        className="rounded-md border bg-white px-3 py-2 text-sm text-slate-800 shadow-sm hover:bg-slate-100">Nederland</button>
+      <button type="button" onClick={() => map.setView([25, 10], 2)}
+        className="rounded-md border bg-white px-3 py-2 text-sm text-slate-800 shadow-sm hover:bg-slate-100">Wereld</button>
+    </div>
+  );
+}
 
 export default function Website() {
   return (
@@ -27,6 +41,32 @@ export default function Website() {
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>Dit wordt het overzicht voor websitebezoekers en gesprekken binnen FlowBridge.</p>
           <p>De website is nog niet gekoppeld. Er worden hier nog geen bezoeken geregistreerd en er worden nog geen pushmeldingen verstuurd.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-base">
+            <MapPin className="w-5 h-5 text-primary" /> Bezoekers op de kaart
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Bekijk straks waar bezoekers ongeveer vandaan komen. Locaties zijn schattingen, geen exacte adressen.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="relative isolate overflow-hidden rounded-lg border" role="region" aria-label="Interactieve kaart met Nederland en wereldweergave">
+            <MapContainer center={[52.2, 5.3]} zoom={7} minZoom={2} maxZoom={18}
+              scrollWheelZoom={false} style={{ height: 400, width: '100%' }}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MapViews />
+            </MapContainer>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Nog geen bezoekerslocaties beschikbaar. De kaart toont bezoekers zodra de website is aangesloten.
+          </p>
         </CardContent>
       </Card>
 
