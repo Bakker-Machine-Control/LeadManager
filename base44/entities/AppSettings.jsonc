@@ -21,6 +21,10 @@
     "hub_shared_key": {
       "type": "string",
       "description": "Shared API key that other Base44 apps use to authenticate against the hubGetLeads endpoint (header x-hub-api-key)"
+    },
+    "lead_webhook_key": {
+      "type": "string",
+      "description": "Geheime sleutel waarmee SmartSuite leads naar de lead-webhook pusht (?secret= of body.secret). Is het veld leeg, dan weigert de webhook alles (401)."
     }
   },
   "required": [

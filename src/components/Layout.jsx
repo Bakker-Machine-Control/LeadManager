@@ -1,7 +1,9 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Settings, RefreshCw, Globe } from 'lucide-react';
+import { LayoutDashboard, Settings, RefreshCw, Globe, Inbox, Megaphone } from 'lucide-react';
 
 const navItems = [
+  { path: '/smartsuite', label: 'SmartSuite', icon: Inbox },
+  { path: '/meta', label: 'Meta', icon: Megaphone },
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/website', label: 'Website', icon: Globe },
   { path: '/settings', label: 'Settings', icon: Settings },

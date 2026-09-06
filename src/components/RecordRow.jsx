@@ -6,7 +6,7 @@ import { RefreshCw, CheckCircle2, Eye, Copy, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function RecordRow({ record, onStatusSave, onViewDetail }) {
-  const [selectedStatus, setSelectedStatus] = useState(record.status || 'nieuw');
+  const [selectedStatus, setSelectedStatus] = useState(record.status || 'Nieuw');
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
   const [copied, setCopied] = useState(false);

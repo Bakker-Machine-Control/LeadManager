@@ -39,20 +39,14 @@
     "status": {
       "type": "string",
       "enum": [
-        "nieuw",
-        "te benaderen",
-        "benaderd",
-        "gekwalificeerd",
-        "offerte",
-        "gewonnen",
-        "verloren",
-        "niet gekwalificeerd",
-        "duplicaat",
-        "junk",
-        "afgehandeld"
+        "Nieuw",
+        "Contacten",
+        "Afspraak",
+        "Afgerond",
+        "Afgewezen"
       ],
-      "default": "nieuw",
-      "description": "Werkstatus in het opvolgproces van BMC. Los van smartsuite_status, die over de instroom gaat."
+      "default": "Nieuw",
+      "description": "Werkstatus in het opvolgproces van BMC \u2014 de vijf kolommen van het Kanban-bord. Los van smartsuite_status, die over de instroom gaat."
     },
     "smartsuite_status": {
       "type": "string",
@@ -96,6 +90,34 @@
     "contact_fsm_id": {
       "type": "string",
       "description": "Verwijzing naar Contact in hub-app 697b419b2ddb6f5c960bbf07, zodra een lead klant wordt"
+    },
+    "meta_lead_id": {
+      "type": "string",
+      "description": "Meta-lead-id uit het SmartSuite-veld s9feaf3fda"
+    },
+    "ad_id": {
+      "type": "string",
+      "description": "Meta-advertentie-id uit het SmartSuite-veld sa4e1203ff"
+    },
+    "ad_naam": {
+      "type": "string",
+      "description": "Naam van de Meta-advertentie uit het SmartSuite-veld sa4820cf90"
+    },
+    "campagne": {
+      "type": "string",
+      "description": "Meta-campagnenaam uit het SmartSuite-veld s924edf549"
+    },
+    "formulier": {
+      "type": "string",
+      "description": "Meta-formuliernaam uit het SmartSuite-veld s351517cff"
+    },
+    "platform": {
+      "type": "string",
+      "description": "Platform van de Meta-instroom (bijv. fb / ig) uit het SmartSuite-veld s335a1f6d0"
+    },
+    "aangeleverde_tekst": {
+      "type": "string",
+      "description": "Aangeleverde tekst uit het Meta-formulier, uit het SmartSuite-veld sfa31637c2"
     },
     "raw_data": {
       "type": "object",

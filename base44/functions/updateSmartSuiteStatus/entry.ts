@@ -4,19 +4,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // zijn toegewezen aan Adriaan Bakker (sales@bmc-consultancy.com).
 const BMC_SMARTSUITE_USER_ID = '6698de738f388153837e4850';
 
-// Vertaling van werkstatus naar SmartSuite (progress-veld + de twee ja/nee-velden)
+// Vertaling van werkstatus naar SmartSuite (progress-veld + eventueel Turn into Opportunity).
+// s2kr26sw (Converted into Sale?) wordt NIET automatisch gezet: Afgerond betekent niet per se verkocht.
 const STATUS_MAP = {
-  'nieuw': { smartsuiteStatus: 'backlog' },
-  'te benaderen': { smartsuiteStatus: 'backlog' },
-  'benaderd': { smartsuiteStatus: 'in_progress' },
-  'gekwalificeerd': { smartsuiteStatus: 'in_progress', opportunity: true },
-  'offerte': { smartsuiteStatus: 'in_progress', opportunity: true },
-  'gewonnen': { smartsuiteStatus: 'complete', convertedToSale: true },
-  'verloren': { smartsuiteStatus: 'complete' },
-  'niet gekwalificeerd': { smartsuiteStatus: 'complete' },
-  'duplicaat': { smartsuiteStatus: 'complete' },
-  'junk': { smartsuiteStatus: 'complete' },
-  'afgehandeld': { smartsuiteStatus: 'complete' },
+  'Nieuw': { smartsuiteStatus: 'backlog' },
+  'Contacten': { smartsuiteStatus: 'in_progress' },
+  'Afspraak': { smartsuiteStatus: 'in_progress', opportunity: true },
+  'Afgerond': { smartsuiteStatus: 'complete' },
+  'Afgewezen': { smartsuiteStatus: 'complete' },
 };
 
 export default async function (req) {
@@ -48,7 +43,7 @@ export default async function (req) {
         action: 'sync',
         status: outcome === 'success' ? 'success' : 'error',
         message: outcome === 'success'
-          ? `Status terugschreven naar SmartSuite (${lead.name || lead_id}): '${oldStatus}' → '${status}' (SmartSuite: ${mapping.smartsuiteStatus}${mapping.opportunity ? ', Turn into Opportunity = true' : ''}${mapping.convertedToSale ? ', Converted into Sale = true' : ''})`
+          ? `Status terugschreven naar SmartSuite (${lead.name || lead_id}): '${oldStatus}' → '${status}' (SmartSuite: ${mapping.smartsuiteStatus}${mapping.opportunity ? ', Turn into Opportunity = true' : ''})`
           : `Terugschrijven naar SmartSuite mislukt (${lead.name || lead_id}): '${oldStatus}' → '${status}' — ${extra}`,
         records_affected: outcome === 'success' ? 1 : 0,
         details: {
@@ -83,7 +78,6 @@ export default async function (req) {
     // 4. PATCH alleen het status-veld en eventueel de twee ja/nee-velden
     const patchBody = { status: mapping.smartsuiteStatus };
     if (mapping.opportunity) patchBody.s73c55f7ca = true;
-    if (mapping.convertedToSale) patchBody.s2kr26sw = true;
 
     let ok = false;
     let failure = null;

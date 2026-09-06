@@ -19,6 +19,7 @@ export default function Settings() {
     smartsuite_account_id: '',
     smartsuite_solution_id: '',
     smartsuite_table_id: '',
+    lead_webhook_key: '',
   });
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function Settings() {
           smartsuite_account_id: s.smartsuite_account_id || '',
           smartsuite_solution_id: s.smartsuite_solution_id || '',
           smartsuite_table_id: s.smartsuite_table_id || '',
+          lead_webhook_key: s.lead_webhook_key || '',
         });
       }
       setLoading(false);
@@ -175,6 +177,16 @@ export default function Settings() {
           </div>
           <Field label="Solution ID" name="smartsuite_solution_id" placeholder="e.g. sol_abc123" />
           <Field label="Table ID" name="smartsuite_table_id" placeholder="e.g. tbl_abc123" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Lead Webhook</CardTitle>
+          <CardDescription>Geheime sleutel waarmee SmartSuite leads naar de webhook pusht (?secret=…). Leeg = webhook weigert alles.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="Webhook Key" name="lead_webhook_key" placeholder="Geheime sleutel voor de lead-webhook" secret />
         </CardContent>
       </Card>
 

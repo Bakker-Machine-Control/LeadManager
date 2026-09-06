@@ -76,7 +76,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
   const [statusSaved, setStatusSaved] = useState(false);
 
   useEffect(() => {
-    setSelectedStatus(record?.status || 'nieuw');
+    setSelectedStatus(record?.status || 'Nieuw');
     setStatusSaved(false);
   }, [record?.id]);
 

@@ -1,6 +1,2 @@
-// Werkstatussen van een lead (Lead.status) — gedeeld door tabelrij en leaddetail
-export const LEAD_STATUSES = [
-  'nieuw', 'te benaderen', 'benaderd', 'gekwalificeerd', 'offerte',
-  'gewonnen', 'verloren', 'niet gekwalificeerd', 'duplicaat', 'junk',
-  'afgehandeld',
-];
+// Werkstatussen van een lead (Lead.status) — de vijf kolommen van het Kanban-bord
+export const LEAD_STATUSES = ['Nieuw', 'Contacten', 'Afspraak', 'Afgerond', 'Afgewezen'];
