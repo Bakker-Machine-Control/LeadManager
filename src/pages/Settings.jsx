@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, CheckCircle2, Key, Copy, Search } from 'lucide-react';
-import { generateZohoRefreshToken } from '@/functions/generateZohoRefreshToken';
+import { Save, Eye, EyeOff, Settings2, Search } from 'lucide-react';
 import { discoverSmartSuiteTableIds } from '@/functions/discoverSmartSuiteTableIds';
 
 export default function Settings() {
@@ -20,7 +19,6 @@ export default function Settings() {
     smartsuite_account_id: '',
     smartsuite_solution_id: '',
     smartsuite_table_id: '',
-    zoho_api_domain: 'https://www.zohoapis.eu',
   });
 
   useEffect(() => {
@@ -33,7 +31,6 @@ export default function Settings() {
           smartsuite_account_id: s.smartsuite_account_id || '',
           smartsuite_solution_id: s.smartsuite_solution_id || '',
           smartsuite_table_id: s.smartsuite_table_id || '',
-          zoho_api_domain: s.zoho_api_domain || 'https://www.zohoapis.eu',
         });
       }
       setLoading(false);
@@ -54,30 +51,7 @@ export default function Settings() {
 
   const toggleShow = (field) => setShowTokens(p => ({ ...p, [field]: !p[field] }));
 
-  const [grantCode, setGrantCode] = useState('');
-  const [generatingToken, setGeneratingToken] = useState(false);
-  const [newRefreshToken, setNewRefreshToken] = useState('');
   const [discovering, setDiscovering] = useState(false);
-
-  const handleGenerateToken = async () => {
-    if (!grantCode.trim()) return;
-    setGeneratingToken(true);
-    setNewRefreshToken('');
-    try {
-      const res = await generateZohoRefreshToken({ grant_code: grantCode.trim() });
-      setGeneratingToken(false);
-      if (res.data?.refresh_token) {
-        setNewRefreshToken(res.data.refresh_token);
-        toast({ title: 'Refresh token ontvangen!', description: 'Kopieer de token hieronder en sla op in secrets.' });
-      } else {
-        toast({ title: 'Fout', description: res.data?.error || 'Kon refresh token niet genereren', variant: 'destructive' });
-      }
-    } catch (error) {
-      setGeneratingToken(false);
-      const errorMsg = error.response?.data?.error || error.message || 'Fout bij token generatie';
-      toast({ title: 'Fout', description: errorMsg, variant: 'destructive' });
-    }
-  };
 
   const handleDiscover = async () => {
     if (!form.smartsuite_api_token || !form.smartsuite_account_id) {
@@ -141,34 +115,34 @@ export default function Settings() {
       {/* Project Description */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">FlowBridge Sync — SmartSuite → Zoho lead-pijplijn</CardTitle>
-          <CardDescription className="text-sm">Haalt leads uit SmartSuite, toont ze in dit dashboard, en synct ze naar Zoho CRM.</CardDescription>
+          <CardTitle className="text-lg">FlowBridge Sync — SmartSuite lead-hub</CardTitle>
+          <CardDescription className="text-sm">Haalt leads uit SmartSuite op, toont ze in dit dashboard en stelt ze via een read-only API beschikbaar voor andere BMC-apps.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm leading-relaxed">
           <div>
             <h3 className="font-semibold mb-1">Architectuur (waarom via een Mac)</h3>
             <p className="text-muted-foreground">
-              SmartSuite blokkeert het server-IP van base44 (sinds ongeveer april 2026), dus base44 kan niet zelf ophalen. 
+              SmartSuite blokkeert het server-IP van base44 (sinds ongeveer april 2026), dus base44 kan niet zelf ophalen.
               Het ophalen loopt daarom via een vaste machine (Mac Studio, IP <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">209.198.140.208</code> — dit IP moet in SmartSuite gewhitelist staan).
             </p>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Hoe de sync werkt</h3>
+            <h3 className="font-semibold mb-2">Hoe de datastroom werkt</h3>
             <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
               <li>
-                <strong className="text-foreground">Fetch (Mac):</strong> launchd-taak <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">com.bmc.leadbridge</code> draait dagelijks om 07:30, 
-                script <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">~/leadbridge/smartsuite-to-base44.mjs</code>. 
+                <strong className="text-foreground">Fetch (Mac):</strong> launchd-taak <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">com.bmc.leadbridge</code> draait dagelijks om 07:30,
+                script <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">~/leadbridge/smartsuite-to-base44.mjs</code>.
                 Haalt alle records op (paginatie van 200) en POST ze in batches van 100 naar de webhook (voorkomt 429 rate-limit).
               </li>
               <li>
-                <strong className="text-foreground">Webhook (smartsuiteWebhookReceiver):</strong> upsert op smartsuite_id naar SyncedRecord met sync_status "pending". 
-                Mapping uit SmartSuite raw_data: naam, e-mail, telefoon (incl. landcode en E164-nummer), plaats, lead_date en smartsuite_status.
+                <strong className="text-foreground">Webhook (smartsuiteWebhookReceiver):</strong> upsert op smartsuite_id naar SyncedRecord.
+                Mapping uit SmartSuite raw_data: naam, e-mail, telefoon (incl. landcode en E164-nummer), bedrijf, plaats, lead_date en smartsuite_status.
               </li>
               <li>
                 <strong className="text-foreground">Dashboard:</strong> toont de leads, standaard gefilterd op +31 (Nederland); met een toggle om alle landen te tonen.
               </li>
               <li>
-                <strong className="text-foreground">Zoho-sync:</strong> aparte stap via een dashboard-knop. Maakt leads aan in Zoho CRM en vult zoho_lead_id + sync_status "synced".
+                <strong className="text-foreground">Hub API (hubGetLeads):</strong> read-only endpoint waarmee andere BMC-apps leads kunnen opvragen — authenticatie via de <code className="bg-muted px-1 rounded text-xs">x-hub-api-key</code> header, vergelijkt telefoonnummers op de laatste 9 cijfers.
               </li>
               <li>
                 <strong className="text-foreground">Backfill-knop:</strong> vult lead_date en landcode op bestaande records uit de al opgeslagen raw_data.
@@ -201,54 +175,6 @@ export default function Settings() {
           </div>
           <Field label="Solution ID" name="smartsuite_solution_id" placeholder="e.g. sol_abc123" />
           <Field label="Table ID" name="smartsuite_table_id" placeholder="e.g. tbl_abc123" />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Zoho CRM</CardTitle>
-          <CardDescription>Zoho authenticates automatisch via de opgeslagen secrets (Client ID, Client Secret, Refresh Token)</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            Zoho secrets zijn geconfigureerd. Tokens worden automatisch vernieuwd.
-          </div>
-          <Field label="API Domain" name="zoho_api_domain" placeholder="https://www.zohoapis.eu" />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Key className="w-4 h-4" /> Zoho Refresh Token genereren</CardTitle>
-          <CardDescription>
-            Genereer een nieuwe Grant Code via <a href="https://api-console.zoho.eu/" target="_blank" rel="noreferrer" className="underline text-primary">api-console.zoho.eu</a> → Self Client → Generate Code (scope: <code className="bg-muted px-1 rounded text-xs">ZohoCRM.modules.leads.ALL,ZohoCRM.modules.activities.ALL</code>), plak hem hieronder en klik Genereer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Grant Code (van Zoho Self Client)</Label>
-            <Input
-              placeholder="Plak hier de grant code..."
-              value={grantCode}
-              onChange={e => setGrantCode(e.target.value)}
-            />
-          </div>
-          <Button onClick={handleGenerateToken} disabled={generatingToken || !grantCode.trim()} className="gap-2">
-            <Key className="w-4 h-4" />
-            {generatingToken ? 'Bezig…' : 'Genereer Refresh Token'}
-          </Button>
-          {newRefreshToken && (
-            <div className="space-y-2">
-              <Label>Nieuwe Refresh Token — kopieer en sla op als <code className="bg-muted px-1 rounded">ZOHO_REFRESH_TOKEN</code> secret</Label>
-              <div className="flex gap-2">
-                <Input value={newRefreshToken} readOnly className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(newRefreshToken); toast({ title: 'Gekopieerd!' }); }}>
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

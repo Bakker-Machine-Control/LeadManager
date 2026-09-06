@@ -53,10 +53,6 @@
       "type": "string",
       "format": "date-time"
     },
-    "zoho_lead_id": {
-      "type": "string",
-      "description": "The lead ID in Zoho CRM after sync"
-    },
     "smartsuite_status": {
       "type": "string"
     },

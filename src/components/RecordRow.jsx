@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import StatusBadge from './StatusBadge';
-import { RefreshCw, CheckCircle2, AlertCircle, MinusCircle, Eye, Copy, MapPin } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Eye, Copy, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SMARTSUITE_STATUSES = [
   'New', 'Contacted', 'Meeting Scheduled', 'Demo Done', 'Qualified', 'Not Interested',
 ];
 
-export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, isSyncing }) {
+export default function RecordRow({ record, onStatusSave, onViewDetail }) {
   const [selectedStatus, setSelectedStatus] = useState(record.smartsuite_status || '');
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
@@ -69,27 +68,6 @@ export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, 
         ) : '—'}
       </td>
       <td className="px-4 py-3">
-        {record.zoho_exists === true ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-            <AlertCircle className="w-3 h-3" />
-            Bestaat ({record.zoho_match})
-          </span>
-        ) : record.zoho_exists === false ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-            <CheckCircle2 className="w-3 h-3" />
-            Nieuw
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <MinusCircle className="w-3 h-3" />
-            —
-          </span>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <StatusBadge status={record.sync_status || 'pending'} />
-      </td>
-      <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
             <SelectTrigger className="h-8 w-40 text-xs">
@@ -118,25 +96,14 @@ export default function RecordRow({ record, onSync, onStatusSave, onViewDetail, 
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onViewDetail(record)}
-            className="h-8 text-xs gap-1"
-          >
-            <Eye className="w-3 h-3" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onSync(record)}
-            disabled={isSyncing}
-            className="h-8 text-xs gap-1"
-          >
-            {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
-            Sync
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onViewDetail(record)}
+          className="h-8 text-xs gap-1"
+        >
+          <Eye className="w-3 h-3" />
+        </Button>
       </td>
     </tr>
   );

@@ -1,9 +1,8 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Settings, RefreshCw, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Settings, RefreshCw } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/activities', label: 'Tasks & Meetings', icon: CalendarDays },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -21,7 +20,7 @@ export default function Layout() {
             </div>
             <div>
               <p className="font-bold text-sm text-foreground leading-tight">LeadSync</p>
-              <p className="text-xs text-muted-foreground">SmartSuite → Zoho</p>
+              <p className="text-xs text-muted-foreground">SmartSuite Lead Hub</p>
             </div>
           </div>
         </div>

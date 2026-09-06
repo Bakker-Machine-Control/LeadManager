@@ -18,15 +18,6 @@
     "smartsuite_table_id": {
       "type": "string"
     },
-    "zoho_access_token": {
-      "type": "string",
-      "description": "Zoho CRM API access token"
-    },
-    "zoho_api_domain": {
-      "type": "string",
-      "description": "Zoho CRM domain, e.g. https://www.zohoapis.com",
-      "default": "https://www.zohoapis.com"
-    },
     "hub_shared_key": {
       "type": "string",
       "description": "Shared API key that other Base44 apps use to authenticate against the hubGetLeads endpoint (header x-hub-api-key)"
