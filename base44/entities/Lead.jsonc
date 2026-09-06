@@ -23,11 +23,11 @@
     },
     "phone_country": {
       "type": "string",
-      "description": "Country code from SmartSuite phone field, e.g. NL, IE, AU"
+      "description": "Landcode uit het SmartSuite-telefoonveld. LET OP: 96,7% van de instroom is niet-Nederlands. Dit is Unicontrols wereldwijde Meta-trechter (AU 3.507, US 2.255, PL 1.861, GB 1.290, CA 1.164, NZ 1.105); slechts 474 leads zijn NL."
     },
     "phone_e164": {
       "type": "string",
-      "description": "Full international phone number in E.164 format, e.g. +31612345678"
+      "description": "Volledig internationaal nummer, bijv. +31612345678. Dit is het gevulde veld; zoeken op 'phone' levert niets op."
     },
     "company": {
       "type": "string"
@@ -48,14 +48,15 @@
         "verloren",
         "niet gekwalificeerd",
         "duplicaat",
-        "junk"
+        "junk",
+        "afgehandeld"
       ],
       "default": "nieuw",
-      "description": "Werkstatus van de lead in het opvolgproces"
+      "description": "Werkstatus in het opvolgproces van BMC. Los van smartsuite_status, die over de instroom gaat."
     },
     "smartsuite_status": {
       "type": "string",
-      "description": "Informatieve status uit de SmartSuite-instroom (niet de werkstatus)"
+      "description": "Informatieve status uit de SmartSuite-instroom (backlog / in_progress / complete). Gaat over Unicontrols verwerking, niet over of BMC gebeld heeft."
     },
     "lead_date": {
       "type": "string"
@@ -98,7 +99,7 @@
     },
     "raw_data": {
       "type": "object",
-      "description": "Raw record data from SmartSuite"
+      "description": "Raw record data from SmartSuite. Bevat onder meer de campagne, het formuliertype (getaquote, bookademo) en een checklist met belpogingen van het internationale team."
     }
   },
   "required": [
