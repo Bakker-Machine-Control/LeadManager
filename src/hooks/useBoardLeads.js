@@ -106,6 +106,31 @@ export function useBoardLeads() {
 
   useEffect(() => { laad(''); }, [laad]);
 
+  // Realtime: zodra een lead wordt bijgewerkt (bijv. verrijkt met een score)
+  // worden de scoregegevens op het kaartje meteen ververst, zonder dat het
+  // hele bord opnieuw geladen hoeft te worden. Statuswijzigingen via slepen
+  // worden hier bewust genegeerd — die verwerkt verplaatsLead al.
+  useEffect(() => {
+    const unsubscribe = base44.entities.Lead.subscribe((event) => {
+      if (event.type !== 'update' || !event.data?.id) return;
+      const lead = event.data;
+      setKolommen((prev) => {
+        let gewijzigd = false;
+        const nieuweKolommen = { ...prev };
+        for (const [status, kolom] of Object.entries(nieuweKolommen)) {
+          const idx = kolom.leads.findIndex((l) => l.id === lead.id);
+          if (idx === -1) continue;
+          const leads = [...kolom.leads];
+          leads[idx] = { ...leads[idx], score: lead.score ?? null, score_label: lead.score_label || '' };
+          nieuweKolommen[status] = { ...kolom, leads };
+          gewijzigd = true;
+        }
+        return gewijzigd ? nieuweKolommen : prev;
+      });
+    });
+    return unsubscribe;
+  }, []);
+
   return {
     kolommen,
     wachtendOpVerrijking,
