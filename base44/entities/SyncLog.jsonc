@@ -7,7 +7,8 @@
       "enum": [
         "fetch",
         "sync",
-        "sync_all"
+        "sync_all",
+        "verrijking"
       ],
       "description": "What action was performed"
     },

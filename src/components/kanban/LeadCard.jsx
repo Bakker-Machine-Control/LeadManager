@@ -1,6 +1,7 @@
 import { Draggable } from '@hello-pangea/dnd';
 import { format, parseISO } from 'date-fns';
 import { Building2, MapPin, Phone } from 'lucide-react';
+import ScoreBadge from '@/components/ScoreBadge';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -18,7 +19,10 @@ export default function LeadCard({ lead, index }) {
             snapshot.isDragging ? 'ring-2 ring-primary opacity-90' : ''
           }`}
         >
-          <p className="font-medium truncate">{lead.name || '—'}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-medium truncate flex-1">{lead.name || '—'}</p>
+            <ScoreBadge score={lead.score} score_label={lead.score_label} />
+          </div>
           {lead.company && (
             <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
               <Building2 className="w-3 h-3 shrink-0" />

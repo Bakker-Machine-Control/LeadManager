@@ -37,6 +37,41 @@ function metaFields(r, ssStr) {
   };
 }
 
+// Zet een opgeslagen Lead om naar de vorm die de tabel en het detailvenster gebruiken
+function mapLead(r) {
+  return {
+    id: r.id,
+    smartsuite_id: r.smartsuite_id,
+    first_name: r.first_name || '',
+    last_name: r.last_name || '',
+    name: r.name || r.smartsuite_id,
+    email: r.email || '',
+    phone: r.phone || '',
+    phone_country: r.phone_country || '',
+    phone_e164: r.phone_e164 || '',
+    company: r.company || '',
+    city: r.city || '',
+    smartsuite_status: r.smartsuite_status || '',
+    status: r.status || 'Nieuw',
+    bron: r.bron || 'smartsuite',
+    lead_date: r.lead_date || '',
+    score: r.score ?? null,
+    score_label: r.score_label || '',
+    score_reden: r.score_reden || '',
+    verrijkt_op: r.verrijkt_op || '',
+    verrijking_status: r.verrijking_status || 'niet_verrijkt',
+    bedrijf_website: r.bedrijf_website || '',
+    bedrijf_kvk: r.bedrijf_kvk || '',
+    bedrijf_sector: r.bedrijf_sector || '',
+    bedrijf_omvang: r.bedrijf_omvang || '',
+    bedrijf_plaats: r.bedrijf_plaats || '',
+    bedrijf_activiteit: r.bedrijf_activiteit || '',
+    machinepark: r.machinepark || '',
+    verrijking: r.verrijking || null,
+    raw_data: r.raw_data || {},
+  };
+}
+
 export default function SmartSuite() {
   const { toast } = useToast();
   const [settings, setSettings] = useState(null);
@@ -58,24 +93,7 @@ export default function SmartSuite() {
     const existing = showAllCountries
       ? await base44.entities.Lead.list('-created_date', 1000)
       : await base44.entities.Lead.filter(NL_QUERY, '-created_date', 1000);
-    setRecords(existing.map(r => ({
-      id: r.id,
-      smartsuite_id: r.smartsuite_id,
-      first_name: r.first_name || '',
-      last_name: r.last_name || '',
-      name: r.name || r.smartsuite_id,
-      email: r.email || '',
-      phone: r.phone || '',
-      phone_country: r.phone_country || '',
-      phone_e164: r.phone_e164 || '',
-      company: r.company || '',
-      city: r.city || '',
-      smartsuite_status: r.smartsuite_status || '',
-      status: r.status || 'Nieuw',
-      bron: r.bron || 'smartsuite',
-      lead_date: r.lead_date || '',
-      raw_data: r.raw_data || {},
-    })));
+    setRecords(existing.map(mapLead));
   };
 
   useEffect(() => {
@@ -285,6 +303,24 @@ export default function SmartSuite() {
     }
   };
 
+  // Eén lead verrijken via enrichLead; ververs daarna de tabel en het detailvenster
+  const handleEnrich = async (rec) => {
+    let leadId = rec.id;
+    if (!leadId) {
+      const found = await base44.entities.Lead.filter({ smartsuite_id: rec.smartsuite_id });
+      leadId = found[0]?.id;
+    }
+    if (!leadId) throw new Error('Lead niet gevonden in de database.');
+
+    const res = await base44.functions.invoke('enrichLead', { lead_id: leadId });
+    if (res.data?.ok === false) throw new Error(res.data?.error || 'Verrijking mislukt.');
+
+    const fresh = mapLead(await base44.entities.Lead.get(leadId));
+    setRecords(prev => prev.map(r => (r.smartsuite_id === fresh.smartsuite_id ? fresh : r)));
+    setSelectedRecord(prev => (prev && prev.smartsuite_id === fresh.smartsuite_id ? fresh : prev));
+    return fresh;
+  };
+
   // Filtered + sorted records
   const displayedRecords = useMemo(() => {
     let filtered = [...records];
@@ -472,6 +508,7 @@ export default function SmartSuite() {
         onClose={() => setSelectedRecord(null)}
         fieldLabels={fieldLabels}
         onStatusSave={handleStatusSave}
+        onEnrich={handleEnrich}
       />
     </div>
   );

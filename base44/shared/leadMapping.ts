@@ -82,6 +82,7 @@ export async function upsertRecord(base44, leadData) {
     ...leadData,
     status: 'Nieuw',
     bron: 'smartsuite',
+    verrijking_status: 'niet_verrijkt',
   });
   return 'created';
 }

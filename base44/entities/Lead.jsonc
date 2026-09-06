@@ -119,6 +119,73 @@
       "type": "string",
       "description": "Aangeleverde tekst uit het Meta-formulier, uit het SmartSuite-veld sfa31637c2"
     },
+    "score": {
+      "type": "number",
+      "description": "Verrijkingsscore. Hoger = beter passend bij de doelgroep van BMC. Leeg = nog niet verrijkt of onvoldoende gegevens."
+    },
+    "score_label": {
+      "type": "string",
+      "enum": [
+        "Heet",
+        "Warm",
+        "Lauw",
+        "Koud",
+        "Onbekend"
+      ],
+      "description": "Categorie bij de score"
+    },
+    "score_reden": {
+      "type": "string",
+      "description": "Korte uitleg in het Nederlands waarom deze score is toegekend"
+    },
+    "verrijkt_op": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Wanneer de lead voor het laatst verrijkt is"
+    },
+    "verrijking_status": {
+      "type": "string",
+      "enum": [
+        "niet_verrijkt",
+        "gelukt",
+        "onvoldoende_gegevens",
+        "mislukt"
+      ],
+      "default": "niet_verrijkt",
+      "description": "Stand van de online verrijking van deze lead"
+    },
+    "bedrijf_website": {
+      "type": "string",
+      "description": "Website van het bedrijf, online gevonden bij de verrijking"
+    },
+    "bedrijf_kvk": {
+      "type": "string",
+      "description": "KvK-nummer van het bedrijf, online gevonden bij de verrijking"
+    },
+    "bedrijf_sector": {
+      "type": "string",
+      "description": "Sector waarin het bedrijf actief is"
+    },
+    "bedrijf_omvang": {
+      "type": "string",
+      "description": "Indicatie aantal medewerkers"
+    },
+    "bedrijf_plaats": {
+      "type": "string",
+      "description": "Plaats waar het bedrijf gevestigd is"
+    },
+    "bedrijf_activiteit": {
+      "type": "string",
+      "description": "Wat het bedrijf doet, in \u00e9\u00e9n of twee zinnen"
+    },
+    "machinepark": {
+      "type": "string",
+      "description": "Wat er online te vinden is over graafmachines / eigen materieel"
+    },
+    "verrijking": {
+      "type": "object",
+      "description": "Volledige ruwe uitkomst van de online zoekopdracht, inclusief bronnen"
+    },
     "raw_data": {
       "type": "object",
       "description": "Raw record data from SmartSuite. Bevat onder meer de campagne, het formuliertype (getaquote, bookademo) en een checklist met belpogingen van het internationale team."

@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, parseISO } from 'date-fns';
-import { Mail, Phone, Building2, Calendar, CheckCircle2, Hash, Copy, Truck, MapPin, RefreshCw } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Mail, Phone, Building2, Calendar, CheckCircle2, Hash, Copy, Truck, MapPin, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import ScoreBadge from '@/components/ScoreBadge';
 import { LEAD_STATUSES } from '@/lib/leadStatuses';
 
 const formatDate = (d) => {
@@ -57,7 +59,7 @@ function extractFromRaw(val) {
 }
 
 function findInRaw(rawData, fieldLabels, keywords) {
-  // First try by label match
+  // Eerst op label zoeken
   const entry = Object.entries(rawData).find(([k]) => {
     const label = (fieldLabels[k] || k).toLowerCase();
     return keywords.some(kw => label.includes(kw.toLowerCase()));
@@ -69,11 +71,13 @@ function findInRaw(rawData, fieldLabels, keywords) {
   return '';
 }
 
-export default function LeadDetailModal({ record, open, onClose, fieldLabels = {}, onStatusSave }) {
+export default function LeadDetailModal({ record, open, onClose, fieldLabels = {}, onStatusSave, onEnrich }) {
+  const { toast } = useToast();
   const [copied, setCopied] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState('nieuw');
+  const [selectedStatus, setSelectedStatus] = useState('Nieuw');
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
+  const [enriching, setEnriching] = useState(false);
 
   useEffect(() => {
     setSelectedStatus(record?.status || 'Nieuw');
@@ -84,7 +88,6 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
 
   const raw = record.raw_data || {};
 
-  // Use stored value or fall back to raw_data extraction by label, then by known slugs
   const email = record.email ||
     findInRaw(raw, fieldLabels, ['email', 'e-mail', 'mail']) ||
     extractFromRaw(raw['s19d20e4c1']) ||
@@ -115,7 +118,6 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
     const label = (fieldLabels[k] || k).toLowerCase();
     const labelMatch = label === 'distributor' || label === 'leverancier' || label.startsWith('distrib');
     if (!labelMatch) return false;
-    // Skip fields whose formatted value looks like a short internal code (no spaces, all lowercase, short)
     const formatted = formatValue(v);
     if (formatted === '—') return false;
     return formatted.length > 2;
@@ -136,6 +138,17 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
     setTimeout(() => setStatusSaved(false), 2000);
   };
 
+  const handleEnrich = async () => {
+    setEnriching(true);
+    try {
+      await onEnrich(record);
+      toast({ title: 'Verrijking voltooid', description: 'De online gegevens zijn bijgewerkt.' });
+    } catch (e) {
+      toast({ title: 'Verrijking mislukt', description: e.message, variant: 'destructive' });
+    }
+    setEnriching(false);
+  };
+
   const rawData = record.raw_data || {};
   const rawEntries = Object.entries(rawData).filter(([k, v]) => {
     if (SKIP_KEYS.includes(k)) return false;
@@ -143,6 +156,11 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
     if (Array.isArray(v) && v.length === 0) return false;
     return true;
   });
+
+  // Verrijkingsgegevens
+  const website = record.bedrijf_website || '';
+  const websiteHref = website ? (website.startsWith('http') ? website : `https://${website}`) : '';
+  const bronnen = record.verrijking?.bronnen || [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -199,8 +217,66 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
               </div>
             </div>
           ) : (
-            <Row icon={Hash} label="Werkstatus" value={record.status || 'nieuw'} />
+            <Row icon={Hash} label="Werkstatus" value={record.status || 'Nieuw'} />
           )}
+        </div>
+
+        {/* Verrijking */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Verrijking</p>
+            {onEnrich && (
+              <Button size="sm" variant="outline" onClick={handleEnrich} disabled={enriching} className="h-7 text-xs gap-1">
+                <Sparkles className={`w-3 h-3 ${enriching ? 'animate-pulse' : ''}`} />
+                {enriching ? 'Verrijken… dit kan even duren' : 'Verrijk deze lead'}
+              </Button>
+            )}
+          </div>
+          <div className="rounded-lg border border-border divide-y divide-border">
+            <div className="flex items-center justify-between px-3 py-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Score</p>
+                <p className="text-sm font-medium">{record.score != null ? `${record.score}/100` : '—'}</p>
+              </div>
+              <ScoreBadge score={record.score} score_label={record.score_label} />
+            </div>
+            <Row icon={Sparkles} label="Waarom deze score" value={record.score_reden || '—'} />
+            <div className="flex items-start gap-3 px-3 py-2">
+              <ExternalLink className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Website</p>
+                {websiteHref ? (
+                  <a href={websiteHref} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline break-all">
+                    {website}
+                  </a>
+                ) : (
+                  <p className="text-sm font-medium">—</p>
+                )}
+              </div>
+            </div>
+            <Row icon={Hash} label="KvK" value={record.bedrijf_kvk || '—'} />
+            <Row icon={Building2} label="Sector" value={record.bedrijf_sector || '—'} />
+            <Row icon={Building2} label="Omvang" value={record.bedrijf_omvang || '—'} />
+            <Row icon={Building2} label="Activiteit" value={record.bedrijf_activiteit || '—'} />
+            <Row icon={Truck} label="Machinepark" value={record.machinepark || '—'} />
+            {bronnen.length > 0 && (
+              <div className="flex items-start gap-3 px-3 py-2">
+                <ExternalLink className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">Bronnen</p>
+                  <ul className="text-sm space-y-0.5">
+                    {bronnen.map((b, i) => (
+                      <li key={i}>
+                        <a href={b} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+                          {b}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Alle SmartSuite velden */}

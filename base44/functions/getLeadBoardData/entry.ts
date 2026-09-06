@@ -32,6 +32,9 @@ export default async function (req) {
       formulier: l.formulier || '',
       platform: l.platform || '',
       aangeleverde_tekst: l.aangeleverde_tekst || '',
+      score: l.score ?? null,
+      score_label: l.score_label || '',
+      verrijking_status: l.verrijking_status || 'niet_verrijkt',
     }));
 
     return Response.json({ ok: true, leads, has_more: batch.length === limit });
