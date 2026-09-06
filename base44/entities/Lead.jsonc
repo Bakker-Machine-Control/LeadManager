@@ -186,6 +186,10 @@
       "type": "string",
       "description": "Wat er online te vinden is over graafmachines / eigen materieel"
     },
+    "gebruikt_machinebesturing": {
+      "type": "string",
+      "description": "Of het bedrijf al 3D-machinebesturing gebruikt en van welk merk. Een bedrijf dat er al mee werkt is bewezen overtuigd van de techniek en daarmee juist een goede prospect, geen afvaller."
+    },
     "verrijking": {
       "type": "object",
       "description": "Volledige ruwe uitkomst van de online zoekopdracht, inclusief bronnen"
