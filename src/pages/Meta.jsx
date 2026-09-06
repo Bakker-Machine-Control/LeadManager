@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAllLeads } from '@/hooks/useAllLeads';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Megaphone } from 'lucide-react';
+import { AlertTriangle, Megaphone, ExternalLink } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const fmtDate = (d) => {
@@ -31,11 +31,20 @@ export default function Meta() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Meta</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Leads uit BMC's eigen Meta-advertenties
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Meta</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Leads uit BMC's eigen Meta-advertenties
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <a href="https://business.facebook.com/latest/home?business_id=113727034677197&asset_id=113725064677394&nav_ref=fb_web_pplus_settings_menu"
+             target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="w-4 h-4" />
+            Meta Business Suite
+          </a>
+        </Button>
       </div>
 
       {fout ? (
