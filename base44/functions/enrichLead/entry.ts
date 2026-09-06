@@ -155,6 +155,7 @@ function bouwScoreReden(u) {
   let zin = onderdelen.join(' ');
   const omvang = MEDEWERKERS_TEKST[u.aantal_medewerkers_indicatie];
   if (omvang && omvang !== 'onbekend') zin += `, ${omvang}`;
+  if (u.gebruikt_3d_machinebesturing === 'ja') zin += ', werkt al met 3D-machinebesturing';
   if (zin === 'bedrijf met onbekende sector') {
     return 'Onvoldoende online informatie voor een goede inschatting.';
   }
@@ -185,6 +186,7 @@ STRIKTE REGELS:
 2. Verzin niets: laat een veld leeg ("") als het niet online te vinden is.
 3. Zet gevonden_bedrijf op false als er geen bedrijf met redelijke zekerheid aan deze lead te koppelen is.
 4. De doelgroep van de verkoper: Nederlandse en Belgische grondverzet-, infra-, GWW-, sloop- en loonwerkbedrijven met een eigen machinepark.
+6. Let apart op of het bedrijf al met 3D-machinebesturing of maaiveldbesturing werkt (merken: Leica, Trimble, Topcon, Novatron, Xsite, MOBA, Unicontrol), bijvoorbeeld genoemd op de website, in projectfoto's of in vacatures. Zet gebruikt_3d_machinebesturing op "ja" alleen als daar een concrete aanwijzing voor is, anders "onbekend".
 5. Vul tekstvelden in het Nederlands in en gebruik bij enumvelden precies de voorgeschreven waarden.`;
 
   const u = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -279,6 +281,9 @@ export default async function (req) {
           bedrijf_plaats: u.plaats || '',
           bedrijf_activiteit: u.activiteit || '',
           machinepark: u.machinepark_toelichting || '',
+          gebruikt_machinebesturing: u.gebruikt_3d_machinebesturing === 'ja'
+            ? (u.machinebesturing_toelichting || 'Ja, werkt al met 3D-machinebesturing')
+            : '',
           verrijking: u,
         });
 
