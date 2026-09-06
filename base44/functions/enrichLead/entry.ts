@@ -23,15 +23,23 @@ const PUNTEN_MACHINEPARK = {
   onbekend: 4,
   nee: 0,
 };
+// Bedrijfsomvang en "heeft een website" wegen bewust licht: bijna elk echt
+// bedrijf heeft een website, dus dat onderdeel onderscheidt nauwelijks. De
+// vrijgekomen ruimte gaat naar machinebesturing, dat wel onderscheidt.
 const PUNTEN_MEDEWERKERS = {
-  '5_tm_50': 10,
-  'meer_dan_50': 7,
-  '1_tm_4': 5,
-  onbekend: 3,
+  '5_tm_50': 5,
+  'meer_dan_50': 4,
+  '1_tm_4': 3,
+  onbekend: 2,
 };
-const PUNTEN_GEVONDEN_MET_WEBSITE = 10;
-const PUNTEN_GEVONDEN_ZONDER_WEBSITE = 4;
+const PUNTEN_GEVONDEN_MET_WEBSITE = 5;
+const PUNTEN_GEVONDEN_ZONDER_WEBSITE = 2;
 const PUNTEN_BESLISSER = { ja: 10, onbekend: 3, nee: 0 };
+// Werkt het bedrijf al met 3D-machinebesturing (Leica, Trimble, Topcon,
+// Novatron, Xsite, Unicontrol), dan is het geen afvaller maar juist een goede
+// prospect: de techniek is er al bewezen, het gesprek gaat alleen nog over
+// merk en prijs. "nee" kost geen punten — dat is de normale uitgangssituatie.
+const PUNTEN_MACHINEBESTURING = { ja: 10, onbekend: 0, nee: 0 };
 const KORTING_ZEKERHEID_LAAG = 0.8; // bij zekerheid 'laag' wordt het eindtotaal met 20% verlaagd
 
 // Leesbare tekst per medewerkers-indicatie, voor het veld bedrijf_omvang
@@ -83,6 +91,8 @@ const VERRIJKING_SCHEMA = {
     aantal_medewerkers_indicatie: { type: 'string', enum: ['1_tm_4', '5_tm_50', 'meer_dan_50', 'onbekend'] },
     eigen_machinepark: { type: 'string', enum: ['ja_graafmachines', 'ja_overig_materieel', 'nee', 'onbekend'] },
     machinepark_toelichting: { type: 'string' },
+    gebruikt_3d_machinebesturing: { type: 'string', enum: ['ja', 'nee', 'onbekend'] },
+    machinebesturing_toelichting: { type: 'string' },
     rol_persoon: { type: 'string' },
     is_beslisser: { type: 'string', enum: ['ja', 'nee', 'onbekend'] },
     bronnen: { type: 'array', items: { type: 'string' } },
@@ -119,6 +129,7 @@ function berekenScore(u) {
     totaal += u.website ? PUNTEN_GEVONDEN_MET_WEBSITE : PUNTEN_GEVONDEN_ZONDER_WEBSITE;
   }
   totaal += PUNTEN_BESLISSER[u.is_beslisser] ?? 0;
+  totaal += PUNTEN_MACHINEBESTURING[u.gebruikt_3d_machinebesturing] ?? 0;
   if (u.zekerheid === 'laag') totaal = totaal * KORTING_ZEKERHEID_LAAG;
   return Math.round(Math.max(0, Math.min(100, totaal)));
 }
