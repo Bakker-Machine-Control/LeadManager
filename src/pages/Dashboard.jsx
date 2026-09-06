@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
+import KanbanLeadModal from '@/components/kanban/KanbanLeadModal';
 
 const SCORE_FILTERS = ['Heet', 'Warm', 'Lauw', 'Koud'];
 
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [scoreFilter, setScoreFilter] = useState('');
   const [verrijken, setVerrijken] = useState(false);
+  const [geselecteerdeLead, setGeselecteerdeLead] = useState(null);
 
   // De kolom "Nieuw" op score aflopend (leads zonder score onderaan);
   // de overige kolommen komen al op lead_date gesorteerd van de server
@@ -120,11 +122,18 @@ export default function Dashboard() {
                 laadtMeer={laadtMeerStatus === status}
                 onLaadMeer={() => laadMeer(status)}
                 archief={status === 'Afgerond'}
+                onLeadClick={setGeselecteerdeLead}
               />
             ))}
           </div>
         </DragDropContext>
       )}
+
+      <KanbanLeadModal
+        lead={geselecteerdeLead}
+        open={!!geselecteerdeLead}
+        onClose={() => setGeselecteerdeLead(null)}
+      />
     </div>
   );
 }

@@ -7,7 +7,7 @@ const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
 };
 
-export default function LeadCard({ lead, index }) {
+export default function LeadCard({ lead, index, onClick }) {
   return (
     <Draggable draggableId={lead.id} index={index}>
       {(provided, snapshot) => (
@@ -15,7 +15,8 @@ export default function LeadCard({ lead, index }) {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`rounded-md border border-border bg-card p-3 text-sm shadow-sm cursor-grab active:cursor-grabbing ${
+          onClick={onClick}
+          className={`rounded-md border border-border bg-card p-3 text-sm shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/60 transition-colors ${
             snapshot.isDragging ? 'ring-2 ring-primary opacity-90' : ''
           }`}
         >
