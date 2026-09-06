@@ -20,6 +20,8 @@ export default function Settings() {
     smartsuite_solution_id: '',
     smartsuite_table_id: '',
     lead_webhook_key: '',
+    crm_webhook_url: '',
+    crm_api_key: '',
   });
 
   useEffect(() => {
@@ -33,6 +35,8 @@ export default function Settings() {
           smartsuite_solution_id: s.smartsuite_solution_id || '',
           smartsuite_table_id: s.smartsuite_table_id || '',
           lead_webhook_key: s.lead_webhook_key || '',
+          crm_webhook_url: s.crm_webhook_url || '',
+          crm_api_key: s.crm_api_key || '',
         });
       }
       setLoading(false);
@@ -187,6 +191,17 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="Webhook Key" name="lead_webhook_key" placeholder="Geheime sleutel voor de lead-webhook" secret />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">CRM-koppeling (Base44 CRM-app)</CardTitle>
+          <CardDescription>Zodra een lead van Nieuw naar Contacten gaat, wordt de contactpersoon automatisch in de CRM-app aangemaakt. Vul hier de webhook-URL van de CRM-ontvanger en de gedeelde API-sleutel in.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="CRM Webhook URL" name="crm_webhook_url" placeholder="https://…base44.app/functions/createContact" />
+          <Field label="CRM API-sleutel" name="crm_api_key" placeholder="Gedeelde sleutel van de CRM-app" secret />
         </CardContent>
       </Card>
 

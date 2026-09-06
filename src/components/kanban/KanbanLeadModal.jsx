@@ -120,20 +120,20 @@ export default function KanbanLeadModal({ lead, open, onClose }) {
                 ) : '—'}
               />
               <Row icon={Calendar} label="Lead datum" value={fmtDate(volledig.lead_date)} />
-              {volledig.zoho_contact_url && (
+              {volledig.contact_fsm_id && (
                 <Row
                   icon={ExternalLink}
-                  label="Zoho CRM"
-                  value={
+                  label="CRM-app"
+                  value={volledig.crm_contact_url ? (
                     <a
-                      href={volledig.zoho_contact_url}
+                      href={volledig.crm_contact_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      Contactpersoon openen in Zoho
+                      Contactpersoon openen in de CRM
                     </a>
-                  }
+                  ) : volledig.contact_fsm_id}
                 />
               )}
             </div>

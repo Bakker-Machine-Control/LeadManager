@@ -85,19 +85,15 @@
     },
     "company_fsm_id": {
       "type": "string",
-      "description": "Verwijzing naar Company in hub-app 697b419b2ddb6f5c960bbf07, zodra een lead klant wordt"
+      "description": "Verwijzing naar Company in de CRM-app (hub-app 697b419b2ddb6f5c960bbf07), zodra een lead klant wordt"
     },
     "contact_fsm_id": {
       "type": "string",
-      "description": "Verwijzing naar Contact in hub-app 697b419b2ddb6f5c960bbf07, zodra een lead klant wordt"
+      "description": "Verwijzing naar de Contact in de CRM-app (hub-app 697b419b2ddb6f5c960bbf07). Wordt automatisch gevuld bij de overgang van Nieuw naar Contacten."
     },
-    "zoho_contact_id": {
+    "crm_contact_url": {
       "type": "string",
-      "description": "ID van de contactpersoon in Zoho CRM. Wordt automatisch aangemaakt bij de overgang van Nieuw naar Contacten."
-    },
-    "zoho_contact_url": {
-      "type": "string",
-      "description": "Directe link naar de contactpersoon in Zoho CRM"
+      "description": "Directe link naar de contactpersoon in de CRM-app"
     },
     "meta_lead_id": {
       "type": "string",
