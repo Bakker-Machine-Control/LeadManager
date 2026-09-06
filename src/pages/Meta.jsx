@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { useAllLeads } from '@/hooks/useAllLeads';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Megaphone, ExternalLink, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Megaphone, ExternalLink, RefreshCw, Eye } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { toast } from '@/components/ui/use-toast';
+import LeadDetailModal from '@/components/LeadDetailModal';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -16,6 +17,7 @@ export default function Meta() {
   // serverzijdig gefilterd. De SmartSuite-instroom hoort hier niet thuis.
   const { leads, loading, fout, reload } = useAllLeads({ bron: 'meta' });
   const [syncBezig, setSyncBezig] = useState(false);
+  const [geselecteerdeLead, setGeselecteerdeLead] = useState(null);
 
   // Haalt de nieuwste leads rechtstreeks uit Meta op en ververst daarna de lijst
   const handleSync = async () => {
@@ -129,6 +131,7 @@ export default function Meta() {
                         <th className="px-4 py-2 text-left font-medium">Campagne</th>
                         <th className="px-4 py-2 text-left font-medium">Meta lead ID</th>
                         <th className="px-4 py-2 text-left font-medium">Aangeleverde tekst</th>
+                        <th className="px-4 py-2 text-left font-medium">Details</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -145,6 +148,11 @@ export default function Meta() {
                               {lead.aangeleverde_tekst || '—'}
                             </span>
                           </td>
+                          <td className="px-4 py-2.5">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setGeselecteerdeLead(lead)} title="Lead inzien">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -155,6 +163,14 @@ export default function Meta() {
           ))}
         </div>
       )}
+
+      {/* Detailvenster: contactgegevens, verrijking en de ingezonden formulierantwoorden */}
+      <LeadDetailModal
+        record={geselecteerdeLead}
+        open={!!geselecteerdeLead}
+        onClose={() => setGeselecteerdeLead(null)}
+        rawLabel="Ingezonden formuliergegevens"
+      />
     </div>
   );
 }

@@ -5,8 +5,17 @@ import { secrets } from 'base44:runtime';
 const PAGE_ID = '113725064677394';
 const GRAPH = 'https://graph.facebook.com/v25.0';
 
-// Standaardvelden die we uit field_data halen; al het andere (vrije vragen) gaat naar aangeleverde_tekst
-const BEKENDE_VELDEN = ['full_name', 'email', 'phone_number', 'city', 'company_name', 'country'];
+// Vertaling van Meta-veldnamen naar Lead-velden. Meta gebruikt per taal andere
+// standaardnamen (bijv. 'volledige_naam' in NL-formulieren); al het andere
+// (vrije vragen) gaat naar aangeleverde_tekst.
+const VELD_ALIASEN = {
+  full_name: 'naam', volledige_naam: 'naam', name: 'naam',
+  email: 'email', 'e-mailadres': 'email', email_address: 'email',
+  phone_number: 'telefoon', telefoonnummer: 'telefoon', phone: 'telefoon',
+  city: 'plaats', plaats: 'plaats', stad: 'plaats',
+  company_name: 'bedrijf', bedrijfsnaam: 'bedrijf', company: 'bedrijf',
+  country: 'land', land: 'land',
+};
 
 // Haalt alle pagina's van een Graph API endpoint op (volgt paging.next)
 async function fetchAll(url) {

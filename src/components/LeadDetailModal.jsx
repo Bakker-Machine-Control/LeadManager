@@ -71,7 +71,7 @@ function findInRaw(rawData, fieldLabels, keywords) {
   return '';
 }
 
-export default function LeadDetailModal({ record, open, onClose, fieldLabels = {}, onStatusSave, onEnrich }) {
+export default function LeadDetailModal({ record, open, onClose, fieldLabels = {}, onStatusSave, onEnrich, rawLabel = 'Alle SmartSuite velden' }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('Nieuw');
@@ -282,7 +282,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
         {/* Alle SmartSuite velden */}
         {rawEntries.length > 0 && (
           <div className="mt-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Alle SmartSuite velden</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{rawLabel}</p>
             <div className="rounded-lg border border-border divide-y divide-border">
               {rawEntries.map(([key, val]) => {
                 const displayVal = formatValue(val);
