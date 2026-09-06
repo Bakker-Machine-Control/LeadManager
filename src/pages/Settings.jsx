@@ -121,7 +121,7 @@ export default function Settings() {
       {/* Project Description */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">FlowBridge Sync — SmartSuite lead-hub</CardTitle>
+          <CardTitle className="text-lg">BMC Sales tool — SmartSuite lead-hub</CardTitle>
           <CardDescription className="text-sm">Haalt leads uit SmartSuite op, toont ze in dit dashboard en stelt ze via een read-only API beschikbaar voor andere BMC-apps.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm leading-relaxed">

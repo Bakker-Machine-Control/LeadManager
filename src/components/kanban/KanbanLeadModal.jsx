@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import ScoreBadge from '@/components/ScoreBadge';
 import ContactmomentForm from './ContactmomentForm';
 import ContactmomentLijst from './ContactmomentLijst';
+import EigenaarSelect from './EigenaarSelect';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -153,11 +154,7 @@ export default function KanbanLeadModal({ lead, open, onClose }) {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Eigenaar</Label>
-                    <Input
-                      value={eigenaar}
-                      onChange={(e) => setEigenaar(e.target.value)}
-                      placeholder="Wie pakt de lead op"
-                    />
+                    <EigenaarSelect value={eigenaar} onChange={setEigenaar} />
                   </div>
                 </div>
                 <Button size="sm" onClick={bewaarOpvolging} disabled={bezig}>
