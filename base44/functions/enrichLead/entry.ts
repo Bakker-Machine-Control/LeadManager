@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
+// Versiemarkering van de scorerubriek, zodat in het antwoord zichtbaar is
+// welke versie van de rubriek live draait.
+const RUBRIEK_VERSIE = '2026-09-06-machinebesturing';
+
 // ============================================================================
 // SCORINGRUBRIEK — bewust als leesbare constanten bovenin, zodat de score
 // uitleegbaar en aanpasbaar blijft. Het model levert alleen feiten; het
@@ -36,9 +40,10 @@ const PUNTEN_GEVONDEN_MET_WEBSITE = 5;
 const PUNTEN_GEVONDEN_ZONDER_WEBSITE = 2;
 const PUNTEN_BESLISSER = { ja: 10, onbekend: 3, nee: 0 };
 // Werkt het bedrijf al met 3D-machinebesturing (Leica, Trimble, Topcon,
-// Novatron, Xsite, Unicontrol), dan is het geen afvaller maar juist een goede
-// prospect: de techniek is er al bewezen, het gesprek gaat alleen nog over
-// merk en prijs. "nee" kost geen punten — dat is de normale uitgangssituatie.
+// Novatron, Xsite, Unicontrol), dan levert dat PUNten op in plaats van kost:
+// een bedrijf dat er al mee werkt is bewezen overtuigd van de techniek en dus
+// juist een goede prospect, geen afvaller. "nee" kost geen punten — dat is de
+// normale uitgangssituatie.
 const PUNTEN_MACHINEBESTURING = { ja: 10, onbekend: 0, nee: 0 };
 const KORTING_ZEKERHEID_LAAG = 0.8; // bij zekerheid 'laag' wordt het eindtotaal met 20% verlaagd
 
@@ -230,9 +235,12 @@ export default async function (req) {
 
     let leads = [];
     if (body.lead_id) {
-      const lead = await base44.asServiceRole.entities.Lead.get(body.lead_id);
+      let lead = null;
+      try {
+        lead = await base44.asServiceRole.entities.Lead.get(body.lead_id);
+      } catch { /* lead bestaat niet */ }
       if (!lead) {
-        return Response.json({ ok: false, error: 'Lead niet gevonden.' }, { status: 404 });
+        return Response.json({ ok: false, error: 'Lead niet gevonden.', rubriek_versie: RUBRIEK_VERSIE }, { status: 404 });
       }
       leads = [lead];
     } else {
@@ -305,11 +313,12 @@ export default async function (req) {
       status: mislukt === 0 ? 'success' : (gelukt + onvoldoende > 0 ? 'partial' : 'error'),
       message: `Leadverrijking: ${gelukt} gelukt, ${onvoldoende} onvoldoende gegevens, ${mislukt} mislukt (van ${leads.length} leads).`,
       records_affected: gelukt + onvoldoende,
-      details: { gelukt, onvoldoende_gegevens: onvoldoende, mislukt, resultaten },
+      details: { rubriek_versie: RUBRIEK_VERSIE, gelukt, onvoldoende_gegevens: onvoldoende, mislukt, resultaten },
     });
 
     return Response.json({
       ok: true,
+      rubriek_versie: RUBRIEK_VERSIE,
       verwerkt: leads.length,
       gelukt,
       onvoldoende_gegevens: onvoldoende,
