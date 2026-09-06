@@ -1,8 +1,10 @@
+import { Link } from 'react-router-dom';
 import { Droppable } from '@hello-pangea/dnd';
+import { Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LeadCard from './LeadCard';
 
-export default function KanbanColumn({ status, leads, totaal, laadtMeer, onLaadMeer }) {
+export default function KanbanColumn({ status, leads, totaal, laadtMeer, onLaadMeer, archief }) {
   // Nog niet geladen leads in deze kolom (totaal komt van de server)
   const nogMeer = Math.max(0, totaal - leads.length);
 
@@ -29,7 +31,16 @@ export default function KanbanColumn({ status, leads, totaal, laadtMeer, onLaadM
           </div>
         )}
       </Droppable>
-      {nogMeer > 0 && (
+      {archief ? (
+        <div className="px-2 pb-2">
+          <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
+            <Link to="/archief">
+              <Archive className="w-3.5 h-3.5" />
+              Naar het archief
+            </Link>
+          </Button>
+        </div>
+      ) : nogMeer > 0 && (
         <div className="px-2 pb-2">
           <Button variant="outline" size="sm" className="w-full" onClick={onLaadMeer} disabled={laadtMeer}>
             {laadtMeer ? 'Laden…' : `Meer laden (nog ${nogMeer})`}

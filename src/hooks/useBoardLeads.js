@@ -40,7 +40,13 @@ export function useBoardLeads() {
     setFout(null);
     try {
       const data = await haalOp(scoreLabel);
-      setKolommen(data.kolommen || legeKolommen());
+      const alle = data.kolommen || legeKolommen();
+      // Op het bord staan in de kolom Afgerond alleen de laatste 10 kaarten;
+      // de rest is te vinden via de knop "Naar het archief" onder de kolom
+      if (alle.Afgerond?.leads?.length > 10) {
+        alle.Afgerond = { ...alle.Afgerond, leads: alle.Afgerond.leads.slice(0, 10) };
+      }
+      setKolommen(alle);
       setWachtendOpVerrijking(data.wachtend_op_verrijking || 0);
     } catch (e) {
       // Fouten worden nooit stilletjes weggegooid: het bord toont een melding

@@ -119,6 +119,7 @@ export default function Dashboard() {
                 totaal={kolommen[status]?.totaal ?? 0}
                 laadtMeer={laadtMeerStatus === status}
                 onLaadMeer={() => laadMeer(status)}
+                archief={status === 'Afgerond'}
               />
             ))}
           </div>
