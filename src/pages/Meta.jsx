@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAllLeads } from '@/hooks/useAllLeads';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Megaphone, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Megaphone, ExternalLink, RefreshCw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { base44 } from '@/api/base44Client';
+import { toast } from '@/components/ui/use-toast';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -13,6 +15,25 @@ export default function Meta() {
   // Uitsluitend leads uit BMC's eigen Meta-advertenties (bron 'meta') —
   // serverzijdig gefilterd. De SmartSuite-instroom hoort hier niet thuis.
   const { leads, loading, fout, reload } = useAllLeads({ bron: 'meta' });
+  const [syncBezig, setSyncBezig] = useState(false);
+
+  // Haalt de nieuwste leads rechtstreeks uit Meta op en ververst daarna de lijst
+  const handleSync = async () => {
+    setSyncBezig(true);
+    try {
+      const res = await base44.functions.invoke('syncMetaLeads', {});
+      const d = res.data || {};
+      toast({
+        title: 'Meta-leads opgehaald',
+        description: `${d.received || 0} leads gecontroleerd: ${d.created || 0} nieuw, ${d.updated || 0} bijgewerkt${d.errors ? `, ${d.errors} fouten` : ''}.`,
+      });
+      await reload();
+    } catch (e) {
+      toast({ title: 'Meta-sync mislukt', description: e.message || 'Onbekende fout', variant: 'destructive' });
+    } finally {
+      setSyncBezig(false);
+    }
+  };
 
   // Groepeer per advertentie (op ad_naam, anders ad_id), met aantal leads per advertentie
   const groups = useMemo(() => {
@@ -38,13 +59,19 @@ export default function Meta() {
             Leads uit BMC's eigen Meta-advertenties
           </p>
         </div>
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <a href="https://business.facebook.com/latest/home?business_id=113727034677197&asset_id=113725064677394&nav_ref=fb_web_pplus_settings_menu"
-             target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-4 h-4" />
-            Meta Business Suite
-          </a>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="default" size="sm" className="gap-1.5" onClick={handleSync} disabled={syncBezig}>
+            <RefreshCw className={`w-4 h-4 ${syncBezig ? 'animate-spin' : ''}`} />
+            {syncBezig ? 'Ophalen…' : 'Meta-leads ophalen'}
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-1.5">
+            <a href="https://business.facebook.com/latest/home?business_id=113727034677197&asset_id=113725064677394&nav_ref=fb_web_pplus_settings_menu"
+               target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-4 h-4" />
+              Meta Business Suite
+            </a>
+          </Button>
+        </div>
       </div>
 
       {fout ? (
