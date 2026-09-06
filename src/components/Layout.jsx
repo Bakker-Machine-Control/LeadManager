@@ -2,10 +2,12 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Settings, RefreshCw, Globe, Inbox, Megaphone } from 'lucide-react';
 
 const navItems = [
-  { path: '/smartsuite', label: 'SmartSuite', icon: Inbox },
-  { path: '/meta', label: 'Meta', icon: Megaphone },
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { separator: 'channels' },
+  { path: '/meta', label: 'Meta', icon: Megaphone },
   { path: '/website', label: 'Website', icon: Globe },
+  { path: '/smartsuite', label: 'SmartSuite', icon: Inbox },
+  { separator: 'settings' },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -28,7 +30,8 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(({ path, label, icon: Icon }) => {
+          {navItems.map(({ path, label, icon: Icon, separator }) => {
+            if (separator) return <div key={separator} role="separator" className="!my-3 border-t border-border" />;
             const active = location.pathname === path;
             return (
               <Link
