@@ -6,7 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { RefreshCw, Users, Search, ArrowUpDown, Calendar } from 'lucide-react';
+import { RefreshCw, Users, Search, ArrowUpDown, Calendar, Globe } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
+const NL_QUERY = { $or: [{ phone_country: 'NL' }, { phone_e164: { $regex: '^\\+31' } }] };
+
+const flagEmoji = (code) => /^[A-Z]{2}$/.test(code)
+  ? String.fromCodePoint(...[...code].map(c => 127397 + c.charCodeAt(0)))
+  : '🌐';
+
+let regionNames = null;
+try { regionNames = new Intl.DisplayNames(['nl'], { type: 'region' }); } catch { regionNames = null; }
+const countryName = (code) => { try { return (regionNames && regionNames.of(code)) || code; } catch { return code; } };
 import RecordRow from '@/components/RecordRow';
 import SyncLogPanel from '@/components/SyncLogPanel';
 import LeadDetailModal from '@/components/LeadDetailModal';
@@ -26,39 +38,40 @@ export default function Dashboard() {
   const [sortField, setSortField] = useState('lead_date');
   const [sortDir, setSortDir] = useState('desc');
   const [showAllCountries, setShowAllCountries] = useState(false);
+  const [countryStats, setCountryStats] = useState(null);
+
+  const loadRecords = async () => {
+    const existing = showAllCountries
+      ? await base44.entities.Lead.list('-created_date', 1000)
+      : await base44.entities.Lead.filter(NL_QUERY, '-created_date', 1000);
+    setRecords(existing.map(r => ({
+      smartsuite_id: r.smartsuite_id,
+      first_name: r.first_name || '',
+      last_name: r.last_name || '',
+      name: r.name || r.smartsuite_id,
+      email: r.email || '',
+      phone: r.phone || '',
+      phone_country: r.phone_country || '',
+      phone_e164: r.phone_e164 || '',
+      company: r.company || '',
+      city: r.city || '',
+      smartsuite_status: r.smartsuite_status || '',
+      status: r.status || 'nieuw',
+      bron: r.bron || 'smartsuite',
+      lead_date: r.lead_date || '',
+      raw_data: r.raw_data || {},
+    })));
+  };
 
   useEffect(() => {
     base44.entities.AppSettings.filter({ key: 'main' }).then(s => {
       if (s.length > 0) setSettings(s[0]);
     });
-    base44.entities.Lead.list('-created_date', 1000).then(existing => {
-      // Load historical records into the table on startup
-      const historical = existing.map(r => {
-        // Fallback: extract phone_country/e164 from raw_data if not yet stored
-        const phoneCountry = r.phone_country || r.raw_data?.s2fc4c481d?.[0]?.phone_country || '';
-        const phoneE164 = r.phone_e164 || (typeof r.raw_data?.s0c5029009 === 'string' ? r.raw_data.s0c5029009 : r.raw_data?.s0c5029009?.sys_title) || '';
-        const company = r.company || (typeof r.raw_data?.sfbbd03935 === 'string' ? r.raw_data.sfbbd03935 : r.raw_data?.sfbbd03935?.value) || '';
-        return {
-          smartsuite_id: r.smartsuite_id,
-          first_name: r.first_name || '',
-          last_name: r.last_name || '',
-          name: r.name || r.smartsuite_id,
-          email: r.email || '',
-          phone: r.phone || '',
-          phone_country: phoneCountry,
-          phone_e164: phoneE164,
-          company,
-          city: r.city || '',
-          smartsuite_status: r.smartsuite_status || '',
-          status: r.status || 'nieuw',
-          bron: r.bron || 'smartsuite',
-          lead_date: r.lead_date || '',
-          raw_data: r.raw_data || {},
-        };
-      });
-      setRecords(historical);
-    });
-  }, []);
+    base44.functions.invoke('getLeadCountryStats', {}).then(res => {
+      if (res.data?.total != null) setCountryStats(res.data);
+    }).catch(() => {});
+    loadRecords();
+  }, [showAllCountries]);
 
   const logAction = async (action, status, message, records_affected) => {
     await base44.entities.SyncLog.create({ action, status, message, records_affected });
@@ -139,13 +152,21 @@ export default function Dashboard() {
         };
       });
       setRecords(mapped);
-      toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald.` });
-      await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite`, mapped.length);
+      const pages = res.data?.pages || 1;
+      toast({ title: 'Records geladen', description: `${mapped.length} records opgehaald uit ${pages} pagina's.` });
+      await logAction('fetch', 'success', `Fetched ${mapped.length} records from SmartSuite (${pages} pages)`, mapped.length);
 
-      // Persist fetched records to SyncedRecord so they load on next app start
-      // Sequential small batches to avoid rate limits
+      // Persist fetched records so they load on next app start
+      // Bij een volledige sync: alle bestaande leads gepagineerd ophalen en alleen gewijzigde velden bijwerken
       (async () => {
-        const existing = await base44.entities.Lead.list('-created_date', 2000);
+        const existing = [];
+        let skip = 0;
+        while (true) {
+          const batch = await base44.entities.Lead.list('-created_date', 1000, skip);
+          existing.push(...batch);
+          if (batch.length < 1000) break;
+          skip += 1000;
+        }
         const existingMap = {};
         existing.forEach(r => { existingMap[r.smartsuite_id] = r; });
 
@@ -156,8 +177,17 @@ export default function Dashboard() {
           // Werkstatus (status/bron) hoort bij de opvolging hier, niet bij de SmartSuite-instroom:
           // bij bestaande leads alleen de instroomvelden bijwerken, bij nieuwe leads status 'nieuw' + bron 'smartsuite' zetten
           const { raw_data, smartsuite_status, status, bron, ...fields } = r;
-          if (existingMap[r.smartsuite_id]) {
-            toUpdate.push({ id: existingMap[r.smartsuite_id].id, data: { ...fields, raw_data, smartsuite_status } });
+          const cur = existingMap[r.smartsuite_id];
+          if (cur) {
+            const patch = {};
+            Object.entries(fields).forEach(([k, v]) => {
+              if ((cur[k] || '') !== (v || '')) patch[k] = v;
+            });
+            if (Object.keys(patch).length > 0) {
+              patch.raw_data = raw_data;
+              patch.smartsuite_status = smartsuite_status;
+              toUpdate.push({ id: cur.id, data: patch });
+            }
           } else {
             toCreate.push({ ...fields, status, bron, raw_data, smartsuite_status });
           }
@@ -170,13 +200,17 @@ export default function Dashboard() {
           if (i + CREATE_CHUNK < toCreate.length) await new Promise(r => setTimeout(r, 300));
         }
 
-        // Update existing records sequentially, 5 at a time
-        const UPDATE_CHUNK = 5;
+        // Update changed records, 10 at a time
+        const UPDATE_CHUNK = 10;
         for (let i = 0; i < toUpdate.length; i += UPDATE_CHUNK) {
           const chunk = toUpdate.slice(i, i + UPDATE_CHUNK);
           await Promise.all(chunk.map(({ id, data }) => base44.entities.Lead.update(id, data)));
-          if (i + UPDATE_CHUNK < toUpdate.length) await new Promise(r => setTimeout(r, 300));
+          if (i + UPDATE_CHUNK < toUpdate.length) await new Promise(r => setTimeout(r, 200));
         }
+
+        base44.functions.invoke('getLeadCountryStats', {}).then(res => {
+          if (res.data?.total != null) setCountryStats(res.data);
+        }).catch(() => {});
       })();
     }
     setFetching(false);
@@ -229,7 +263,7 @@ export default function Dashboard() {
 
     // Default: only Netherlands (+31) unless "Show all" is toggled
     if (!showAllCountries) {
-      filtered = filtered.filter(r => r.phone_country === 'NL');
+      filtered = filtered.filter(r => r.phone_country === 'NL' || (r.phone_e164 || '').startsWith('+31'));
     }
 
     filtered.sort((a, b) => {
@@ -242,9 +276,19 @@ export default function Dashboard() {
     return filtered;
   }, [records, searchQuery, sortField, sortDir, showAllCountries]);
 
+  const nlCount = countryStats?.byCountry?.find(c => c.code === 'NL')?.count
+    ?? records.filter(r => r.phone_country === 'NL' || (r.phone_e164 || '').startsWith('+31')).length;
+  const totalCount = countryStats?.total ?? records.length;
+
+  const otherCountries = (countryStats?.byCountry || []).filter(c => c.code !== 'NL' && c.code !== 'ONBEKEND');
+  const otherSum = otherCountries.reduce((s, c) => s + c.count, 0);
+  const unknownCount = (countryStats?.byCountry || []).find(c => c.code === 'ONBEKEND')?.count || 0;
+  const topOther = otherCountries.slice(0, 6);
+  const restCount = otherSum - topOther.reduce((s, c) => s + c.count, 0);
+
   const stats = [
-    { label: 'Totaal', value: records.length, icon: Users, color: 'text-primary' },
-    { label: 'Nederland (+31)', value: records.filter(r => r.phone_country === 'NL').length, icon: Users, color: 'text-accent' },
+    { label: 'Totaal (alle landen)', value: totalCount, icon: Globe, color: 'text-primary' },
+    { label: 'Nederland (+31)', value: nlCount, icon: Users, color: 'text-accent' },
   ];
 
   return (
@@ -313,15 +357,30 @@ export default function Dashboard() {
                 <SelectItem value="company_asc">Bedrijf (A→Z)</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              variant={showAllCountries ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowAllCountries(p => !p)}
-              className="h-8 text-xs gap-1"
-            >
-              {showAllCountries ? '🌍 Alle landen (aan)' : '🇳🇱 Alleen NL'}
-            </Button>
+            <div className="flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-card">
+              <Switch
+                id="nl-only"
+                checked={!showAllCountries}
+                onCheckedChange={checked => setShowAllCountries(!checked)}
+              />
+              <Label htmlFor="nl-only" className="text-xs cursor-pointer whitespace-nowrap select-none">
+                🇳🇱 Alleen NL ({nlCount})
+              </Label>
+            </div>
           </div>
+          {countryStats && (
+            <p className="text-xs text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>🌍 Alle landen: {totalCount.toLocaleString('nl-NL')}</span>
+              {topOther.map(c => (
+                <span key={c.code} className="whitespace-nowrap">
+                  {flagEmoji(c.code)} {countryName(c.code)}: {c.count.toLocaleString('nl-NL')}
+                </span>
+              ))}
+              {restCount + unknownCount > 0 && (
+                <span className="whitespace-nowrap">overig: {(restCount + unknownCount).toLocaleString('nl-NL')}</span>
+              )}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {records.length === 0 ? (

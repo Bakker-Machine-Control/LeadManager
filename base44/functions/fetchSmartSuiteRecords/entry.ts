@@ -1,6 +1,45 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-Deno.serve(async (req) => {
+const PAGE_SIZE = 1000;
+const INTERPAGE_DELAY_MS = 300;
+const MAX_RETRIES = 5;
+
+// Haalt één pagina records op, met retry/backoff voor rate limits (429 of Cloudflare-challenge)
+async function fetchRecordsPage(listUrl, headers, offset) {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(listUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ limit: PAGE_SIZE, offset }),
+      });
+      const rawText = await resp.text();
+      const isChallenge = rawText.includes('Just a moment') || rawText.includes('challenge') || rawText.includes('cf-');
+      if (resp.ok && !isChallenge) {
+        return { ok: true, data: JSON.parse(rawText) };
+      }
+      const isRateLimit = resp.status === 429 || isChallenge;
+      if (isRateLimit && attempt < MAX_RETRIES - 1) {
+        const delayMs = Math.pow(2, attempt) * 5000; // 5s, 10s, 20s, 40s
+        console.log(`Rate limit (status=${resp.status}) bij offset=${offset}, retry ${attempt + 1}/${MAX_RETRIES} over ${delayMs / 1000}s`);
+        await new Promise(r => setTimeout(r, delayMs));
+        continue;
+      }
+      if (isRateLimit) {
+        return { ok: false, rateLimit: true, error: 'SmartSuite API rate limit bereikt (Cloudflare). Wacht even en probeer het opnieuw.' };
+      }
+      return { ok: false, rateLimit: false, error: `SmartSuite API error: ${resp.status} - ${rawText.substring(0, 100)}` };
+    } catch (fetchError) {
+      console.log(`Fetch error bij offset=${offset}, poging ${attempt + 1}: ${fetchError.message}`);
+      if (attempt === MAX_RETRIES - 1) {
+        return { ok: false, rateLimit: false, error: `Netwerkfout: ${fetchError.message}` };
+      }
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 5000));
+    }
+  }
+}
+
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -31,79 +70,60 @@ Deno.serve(async (req) => {
       'ACCOUNT-ID': account_id,
       'Content-Type': 'application/json',
     };
+    const listUrl = `https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`;
 
-    // Fetch with retry logic for rate limits (5 retries, longer backoff)
-    const MAX_RETRIES = 5;
-    let recordsResp, structureResp;
-    
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        [recordsResp, structureResp] = await Promise.all([
-          fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/records/list/`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ limit: 1000, offset: 0 }),
-          }),
-          fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/`, {
-            method: 'GET',
-            headers,
-          }),
-        ]);
-
-        if (recordsResp.ok) break; // Success, exit retry loop
-        
-        const errText = await recordsResp.text();
-        console.log(`Attempt ${attempt + 1}: status=${recordsResp.status}, body_start=${errText.substring(0, 200)}`);
-        const isRateLimit = recordsResp.status === 429 || errText.includes('Just a moment') || errText.includes('challenge') || errText.includes('cf-');
-        
-        if (isRateLimit && attempt < MAX_RETRIES - 1) {
-          // Longer exponential backoff: 5s, 10s, 20s, 40s
-          const delayMs = Math.pow(2, attempt) * 5000;
-          console.log(`Rate limit hit, retry ${attempt + 1}/${MAX_RETRIES} after ${delayMs/1000}s`);
-          await new Promise(r => setTimeout(r, delayMs));
-          continue;
-        }
-        
-        if (isRateLimit) {
-          return Response.json({ error: 'SmartSuite API rate limit bereikt (Cloudflare). Wacht even en probeer het opnieuw.' }, { status: 429 });
-        }
-        return Response.json({ error: `SmartSuite API error: ${recordsResp.status} - ${errText.substring(0, 100)}` }, { status: 502 });
-      } catch (fetchError) {
-        console.log(`Fetch error attempt ${attempt + 1}: ${fetchError.message}`);
-        if (attempt === MAX_RETRIES - 1) throw fetchError;
-        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 5000));
-      }
-    }
-
-    if (!recordsResp.ok) {
-      return Response.json({ error: 'SmartSuite API error na retries' }, { status: 502 });
-    }
-
-    const rawText = await recordsResp.text();
-    if (rawText.includes('Just a moment') || rawText.includes('challenge')) {
-      return Response.json({ error: 'SmartSuite API rate limit bereikt (Cloudflare). Wacht even en probeer het opnieuw.' }, { status: 429 });
-    }
-    const data = JSON.parse(rawText);
-
-    // Build slug -> label map from structure
+    // Tabelstructuur (slug -> label) één keer ophalen
     let fieldLabels = {};
-    if (structureResp.ok) {
-      const structure = await structureResp.json();
-      const fields = structure.structure || [];
-      fields.forEach(f => {
-        if (f.slug && f.label) fieldLabels[f.slug] = f.label;
+    try {
+      const structureResp = await fetch(`https://app.smartsuite.com/api/v1/applications/${table_id}/`, {
+        method: 'GET',
+        headers,
       });
+      if (structureResp.ok) {
+        const structure = await structureResp.json();
+        const fields = structure.structure || [];
+        fields.forEach(f => {
+          if (f.slug && f.label) fieldLabels[f.slug] = f.label;
+        });
+      }
+    } catch (structureError) {
+      console.log('Kon tabelstructuur niet ophalen: ' + structureError.message);
     }
 
-    const items = data.items || [];
-    // Log first record keys and fieldLabels for debugging
-    if (items.length > 0) {
-      console.log('FIELD_LABELS:', JSON.stringify(fieldLabels));
-      console.log('FIRST_RECORD_KEYS:', JSON.stringify(Object.keys(items[0])));
-      console.log('FIRST_RECORD_SAMPLE:', JSON.stringify(items[0]));
+    // Pagineer met offset door alle records tot een pagina minder dan PAGE_SIZE teruggeeft
+    const items = [];
+    let pages = 0;
+    let offset = 0;
+    let total = 0;
+
+    while (true) {
+      const page = await fetchRecordsPage(listUrl, headers, offset);
+      if (!page.ok) {
+        return Response.json(
+          { error: page.error, pages, fetchedSoFar: items.length },
+          { status: page.rateLimit ? 429 : 502 }
+        );
+      }
+      pages++;
+      const pageItems = page.data.items || [];
+      total = page.data.total || total;
+      items.push(...pageItems);
+      console.log(`Pagina ${pages} opgehaald: ${pageItems.length} records (offset=${offset}, totaal nu ${items.length})`);
+
+      offset += PAGE_SIZE;
+      if (pageItems.length < PAGE_SIZE) break;
+
+      // Korte pauze tussen pagina's om rate limits te ontlopen
+      await new Promise(r => setTimeout(r, INTERPAGE_DELAY_MS));
     }
-    return Response.json({ items, total: data.total || 0, fieldLabels });
+
+    console.log(`Sync voltooid: ${pages} pagina's, ${items.length} records opgehaald (SmartSuite totaal: ${total})`);
+    if (items.length > 0) {
+      console.log('FIRST_RECORD_KEYS:', JSON.stringify(Object.keys(items[0])));
+    }
+
+    return Response.json({ total, pages, fetched: items.length, fieldLabels, items });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
