@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { LEAD_STATUSES } from '@/lib/leadStatuses';
+import { useToast } from '@/components/ui/use-toast';
 
 const PER_KOLOM = 100;
 
@@ -14,12 +15,19 @@ const legeKolommen = () => LEAD_STATUSES.reduce(
 // gepagineerd, lichte velden zonder raw_data). laadMeer(status) haalt de
 // volgende pagina voor één kolom op en plakt die eronder.
 export function useBoardLeads() {
+  const { toast } = useToast();
   const [kolommen, setKolommen] = useState(legeKolommen);
   const [wachtendOpVerrijking, setWachtendOpVerrijking] = useState(0);
   const [loading, setLoading] = useState(true);
   const [laadtMeerStatus, setLaadtMeerStatus] = useState(null);
   const [fout, setFout] = useState(null);
   const scoreLabelRef = useRef('');
+  // Lead-ids die kortgeleden naar "Contacten" zijn gesleept: zodra de
+  // realtime-update met een CRM-koppeling (contact_fsm_id) binnenkomt,
+  // tonen we een korte groene melding. Waarde 'nieuw' = eerste update
+  // (contact bestaat al als contact_fsm_id al gevuld is), 'wacht' =
+  // contact wordt nog aangemaakt door de CRM-koppeling.
+  const recentNaarContacten = useRef(new Map());
 
   const haalOp = useCallback(async (scoreLabel, offsets, alleen) => {
     const res = await base44.functions.invoke('getLeadBoardData', {
@@ -84,6 +92,10 @@ export function useBoardLeads() {
   // Verplaatst alleen de gesleepte kaart en werkt de tellingen van de bron- en
   // doelkolom bij; mislukt het opslaan, dan wordt de kaart teruggezet.
   const verplaatsLead = useCallback(async (leadId, oudeStatus, nieuweStatus) => {
+    if (nieuweStatus === 'Contacten') {
+      recentNaarContacten.current.set(leadId, 'nieuw');
+      setTimeout(() => recentNaarContacten.current.delete(leadId), 30000);
+    }
     const verplaats = (van, naar) => (prev) => {
       const bron = prev[van];
       const doel = prev[naar];
@@ -114,6 +126,17 @@ export function useBoardLeads() {
     const unsubscribe = base44.entities.Lead.subscribe((event) => {
       if (event.type !== 'update' || !event.data?.id) return;
       const lead = event.data;
+      // Groene melding zodra de CRM-koppeling rond is na slepen naar Contacten
+      const crmFase = recentNaarContacten.current.get(lead.id);
+      if (crmFase && lead.contact_fsm_id) {
+        recentNaarContacten.current.delete(lead.id);
+        toast({
+          title: crmFase === 'wacht' ? 'Klant aangemaakt in de CRM' : 'Klant bestaat al',
+          className: 'border-green-600 bg-green-600 text-white',
+        });
+      } else if (crmFase === 'nieuw') {
+        recentNaarContacten.current.set(lead.id, 'wacht');
+      }
       setKolommen((prev) => {
         let gewijzigd = false;
         const nieuweKolommen = { ...prev };
