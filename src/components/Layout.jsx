@@ -1,8 +1,9 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Settings, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Settings, RefreshCw, Globe } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/website', label: 'Website', icon: Globe },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
