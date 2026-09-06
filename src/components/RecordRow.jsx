@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LEAD_STATUSES } from '@/lib/leadStatuses';
+import { LEAD_STATUSES, STATUS_KLEUREN } from '@/lib/leadStatuses';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw, CheckCircle2, Eye, Copy, MapPin } from 'lucide-react';
@@ -69,7 +69,7 @@ export default function RecordRow({ record, onStatusSave, onViewDetail }) {
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="h-8 w-40 text-xs">
+            <SelectTrigger className={`h-8 w-40 text-xs font-medium ${STATUS_KLEUREN[selectedStatus] || ''}`}>
               <SelectValue placeholder="Set status…" />
             </SelectTrigger>
             <SelectContent>
