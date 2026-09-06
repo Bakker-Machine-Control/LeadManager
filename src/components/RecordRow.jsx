@@ -1,13 +1,9 @@
 import { useState } from 'react';
+import { LEAD_STATUSES } from '@/lib/leadStatuses';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw, CheckCircle2, Eye, Copy, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-
-const LEAD_STATUSES = [
-  'nieuw', 'te benaderen', 'benaderd', 'gekwalificeerd', 'offerte',
-  'gewonnen', 'verloren', 'niet gekwalificeerd', 'duplicaat', 'junk',
-];
 
 export default function RecordRow({ record, onStatusSave, onViewDetail }) {
   const [selectedStatus, setSelectedStatus] = useState(record.status || 'nieuw');

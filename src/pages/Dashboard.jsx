@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { fetchSmartSuiteRecords } from '@/functions/fetchSmartSuiteRecords';
+import { updateSmartSuiteStatus } from '@/functions/updateSmartSuiteStatus';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ export default function Dashboard() {
       ? await base44.entities.Lead.list('-created_date', 1000)
       : await base44.entities.Lead.filter(NL_QUERY, '-created_date', 1000);
     setRecords(existing.map(r => ({
+      id: r.id,
       smartsuite_id: r.smartsuite_id,
       first_name: r.first_name || '',
       last_name: r.last_name || '',
@@ -118,11 +120,14 @@ export default function Dashboard() {
       const mapped = items.map(item => {
         const r = item; // shorthand
 
-        const firstName = (r.s3430826e2?.first_name) || ssStr(r.s527015a79) || '';
-        const lastName = r.s3430826e2?.last_name || '';
-        const fullName = firstName && lastName
-          ? `${firstName} ${lastName}`
-          : (firstName || lastName || ssStr(r.title) || ssStr(r.name) || ssStr(r.full_name) || r.id);
+        // Naam samenvoegen en dan splitsen: eerste woord = voornaam, rest = achternaam,
+        // zodat NL tussenvoegsels bij de achternaam vallen (Danique de Leeuw → Danique + de Leeuw).
+        // `name` houdt altijd de originele tekst.
+        const fullName = ((r.s3430826e2?.first_name || '') + ' ' + (r.s3430826e2?.last_name || '')).trim()
+          || ssStr(r.s527015a79) || ssStr(r.title) || ssStr(r.name) || ssStr(r.full_name) || r.id;
+        const nameParts = fullName.split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
         const email = ssStr(r.s19d20e4c1) || r.email || '';
         const phone = r.s2fc4c481d?.[0]?.sys_title || '';
@@ -236,12 +241,31 @@ export default function Dashboard() {
 
   const handleStatusSave = async (rec, newStatus) => {
     try {
-      const found = await base44.entities.Lead.filter({ smartsuite_id: rec.smartsuite_id });
-      if (found.length > 0) {
-        await base44.entities.Lead.update(found[0].id, { status: newStatus });
+      // Terugschrijven loopt serverzijdig; we hebben het Base44-id van de lead nodig
+      let leadId = rec.id;
+      if (!leadId) {
+        const found = await base44.entities.Lead.filter({ smartsuite_id: rec.smartsuite_id });
+        leadId = found[0]?.id;
       }
-      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, status: newStatus } : r));
-      toast({ title: 'Status bijgewerkt', description: `"${rec.name}" → ${newStatus}` });
+      if (!leadId) {
+        toast({ title: 'Niet terugschreven', description: 'Lead niet gevonden in de database.', variant: 'destructive' });
+        return;
+      }
+
+      const res = await updateSmartSuiteStatus({ lead_id: leadId, status: newStatus });
+      if (res.data?.ok) {
+        setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, id: leadId, status: newStatus } : r));
+        toast({
+          title: 'Status teruggeschreven',
+          description: `"${rec.name}" → ${newStatus} (SmartSuite: ${res.data.smartsuite_status_value})`,
+        });
+      } else {
+        toast({
+          title: 'Niet terugschreven naar SmartSuite',
+          description: res.data?.error || 'SmartSuite weigerde de wijziging.',
+          variant: 'destructive',
+        });
+      }
     } catch (e) {
       toast({ title: 'Status opslaan mislukt', description: e.message, variant: 'destructive' });
     }
@@ -433,6 +457,7 @@ export default function Dashboard() {
         open={!!selectedRecord}
         onClose={() => setSelectedRecord(null)}
         fieldLabels={fieldLabels}
+        onStatusSave={handleStatusSave}
       />
     </div>
   );

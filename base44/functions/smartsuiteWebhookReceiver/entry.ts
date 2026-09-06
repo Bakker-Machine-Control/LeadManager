@@ -16,16 +16,20 @@ function getStr(val) {
   return String(val);
 }
 
-// Map a single SmartSuite record to Lead fields
+// Map a single SmartSuite record to Lead fields.
+// Naamregels: bevat de naam meerdere woorden, dan is het eerste woord de voornaam
+// en de rest de achternaam (NL tussenvoegsels vallen zo bij de achternaam:
+// Danique de Leeuw -> Danique + de Leeuw). Eén woord = alleen voornaam.
+// Het veld `name` houdt altijd de originele tekst.
 function mapRecord(record) {
   const r = record;
   const smartsuiteId = r.id;
 
-  const firstName = (r.s3430826e2?.first_name) || getStr(r.s527015a79) || '';
-  const lastName = r.s3430826e2?.last_name || '';
-  const fullName = firstName && lastName
-    ? `${firstName} ${lastName}`
-    : (firstName || lastName || getStr(r.title) || getStr(r.name) || getStr(r.full_name) || smartsuiteId);
+  const fullName = (((r.s3430826e2?.first_name) || '') + ' ' + ((r.s3430826e2?.last_name) || '')).trim()
+    || getStr(r.s527015a79) || getStr(r.title) || getStr(r.name) || getStr(r.full_name) || smartsuiteId;
+  const nameParts = fullName.split(/\s+/);
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
   const email = getStr(r.s19d20e4c1) || r.email || '';
   const phone = r.s2fc4c481d?.[0]?.sys_title || '';
   const phoneCountry = r.s2fc4c481d?.[0]?.phone_country || '';
@@ -74,7 +78,7 @@ async function upsertRecord(base44, leadData) {
   return 'created';
 }
 
-export default async function(req) {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
 
@@ -95,11 +99,13 @@ export default async function(req) {
     }
 
     let created = 0, updated = 0, errors = 0;
+    const errorDetails = [];
 
     for (const record of records) {
       try {
         if (!record.id) {
           errors++;
+          errorDetails.push({ id: record.id || '?', error: 'record zonder id' });
           continue;
         }
         const leadData = mapRecord(record);
@@ -109,6 +115,7 @@ export default async function(req) {
       } catch (e) {
         console.error(`Record error (${record.id || '?'}):`, e.message);
         errors++;
+        errorDetails.push({ id: record.id || '?', error: e.message });
       }
     }
 
@@ -118,6 +125,7 @@ export default async function(req) {
       created,
       updated,
       errors,
+      error_details: errorDetails,
     });
   } catch (error) {
     console.error('Webhook error:', error.message);

@@ -1,7 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, parseISO } from 'date-fns';
-import { Mail, Phone, Building2, Calendar, CheckCircle2, Hash, Copy, Truck, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { Mail, Phone, Building2, Calendar, CheckCircle2, Hash, Copy, Truck, MapPin, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LEAD_STATUSES } from '@/lib/leadStatuses';
 
 const formatDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -66,8 +69,16 @@ function findInRaw(rawData, fieldLabels, keywords) {
   return '';
 }
 
-export default function LeadDetailModal({ record, open, onClose, fieldLabels = {} }) {
+export default function LeadDetailModal({ record, open, onClose, fieldLabels = {}, onStatusSave }) {
   const [copied, setCopied] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('nieuw');
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [statusSaved, setStatusSaved] = useState(false);
+
+  useEffect(() => {
+    setSelectedStatus(record?.status || 'nieuw');
+    setStatusSaved(false);
+  }, [record?.id]);
 
   if (!record) return null;
 
@@ -116,6 +127,15 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
     setTimeout(() => setCopied(null), 1500);
   };
 
+  const handleSaveStatus = async () => {
+    setSavingStatus(true);
+    setStatusSaved(false);
+    await onStatusSave(record, selectedStatus);
+    setSavingStatus(false);
+    setStatusSaved(true);
+    setTimeout(() => setStatusSaved(false), 2000);
+  };
+
   const rawData = record.raw_data || {};
   const rawEntries = Object.entries(rawData).filter(([k, v]) => {
     if (SKIP_KEYS.includes(k)) return false;
@@ -151,7 +171,36 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
           <Row icon={MapPin} label="Plaats" value={city} />
           <Row icon={Calendar} label="Lead datum" value={formatDate(record.lead_date)} />
           <Row icon={Hash} label="SmartSuite status" value={record.smartsuite_status} />
-          <Row icon={Hash} label="Werkstatus" value={record.status || 'nieuw'} />
+          {onStatusSave ? (
+            <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+              <Hash className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Werkstatus (wordt teruggeschreven naar SmartSuite)</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="h-8 w-44 text-sm">
+                      <SelectValue placeholder="Status…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LEAD_STATUSES.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="outline" onClick={handleSaveStatus} disabled={savingStatus || !selectedStatus} className="h-8 text-xs gap-1">
+                    {statusSaved ? (
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                    ) : savingStatus ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : null}
+                    {statusSaved ? 'Teruggeschreven' : 'Schrijf terug'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Row icon={Hash} label="Werkstatus" value={record.status || 'nieuw'} />
+          )}
         </div>
 
         {/* Alle SmartSuite velden */}

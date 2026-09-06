@@ -22,7 +22,9 @@ function buildPhonePattern(input) {
 function buildQuery(params) {
   const query = {};
   if (params.email) query.email = params.email;
-  if (params.status) query.smartsuite_status = params.status;
+  // `status` = werkstatus (Lead.status); `smartsuite_status` = instroomstatus (backlog/in_progress/complete)
+  if (params.status) query.status = params.status;
+  if (params.smartsuite_status) query.smartsuite_status = params.smartsuite_status;
   if (params.q) {
     const rx = { $regex: escapeRegex(params.q), $options: 'i' };
     query.$or = [{ name: rx }, { company: rx }, { city: rx }];
@@ -62,6 +64,7 @@ Deno.serve(async (req) => {
 
     const email = getParam('email');
     const status = getParam('status');
+    const smartsuite_status = getParam('smartsuite_status');
     const q = getParam('q');
     const phonePattern = buildPhonePattern(getParam('phone'));
 
@@ -71,7 +74,7 @@ Deno.serve(async (req) => {
     let offset = parseInt(getParam('offset'), 10);
     if (!Number.isFinite(offset) || offset < 0) offset = 0;
 
-    const query = buildQuery({ email, status, q, phonePattern });
+    const query = buildQuery({ email, status, smartsuite_status, q, phonePattern });
 
     // --- count total matches in batches (never one unbounded fetch) ---
     const COUNT_BATCH = 1000;
