@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { useBoardLeads } from '@/hooks/useBoardLeads';
+import { useAllLeads } from '@/hooks/useAllLeads';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Megaphone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, Megaphone } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const fmtDate = (d) => {
@@ -9,7 +10,7 @@ const fmtDate = (d) => {
 };
 
 export default function Meta() {
-  const { leads, loading } = useBoardLeads();
+  const { leads, loading, fout, reload } = useAllLeads();
 
   // Groepeer per advertentie (op ad_naam, anders ad_id), met aantal leads per advertentie
   const groups = useMemo(() => {
@@ -35,7 +36,17 @@ export default function Meta() {
         </p>
       </div>
 
-      {loading ? (
+      {fout ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+            <p className="text-sm text-muted-foreground max-w-md">
+              De leads konden niet geladen worden: {fout}
+            </p>
+            <Button variant="outline" onClick={reload}>Opnieuw proberen</Button>
+          </CardContent>
+        </Card>
+      ) : loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
