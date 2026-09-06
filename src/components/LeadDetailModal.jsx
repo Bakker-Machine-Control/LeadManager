@@ -151,6 +151,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
           <Row icon={MapPin} label="Plaats" value={city} />
           <Row icon={Calendar} label="Lead datum" value={formatDate(record.lead_date)} />
           <Row icon={Hash} label="SmartSuite status" value={record.smartsuite_status} />
+          <Row icon={Hash} label="Werkstatus" value={record.status || 'nieuw'} />
         </div>
 
         {/* Alle SmartSuite velden */}

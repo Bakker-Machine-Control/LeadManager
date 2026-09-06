@@ -31,7 +31,7 @@ export default function Dashboard() {
     base44.entities.AppSettings.filter({ key: 'main' }).then(s => {
       if (s.length > 0) setSettings(s[0]);
     });
-    base44.entities.SyncedRecord.list('-created_date', 1000).then(existing => {
+    base44.entities.Lead.list('-created_date', 1000).then(existing => {
       // Load historical records into the table on startup
       const historical = existing.map(r => {
         // Fallback: extract phone_country/e164 from raw_data if not yet stored
@@ -50,6 +50,8 @@ export default function Dashboard() {
           company,
           city: r.city || '',
           smartsuite_status: r.smartsuite_status || '',
+          status: r.status || 'nieuw',
+          bron: r.bron || 'smartsuite',
           lead_date: r.lead_date || '',
           raw_data: r.raw_data || {},
         };
@@ -130,6 +132,8 @@ export default function Dashboard() {
           company,
           city,
           smartsuite_status: smartsuiteStatus,
+          status: 'nieuw',
+          bron: 'smartsuite',
           lead_date: leadDate,
           raw_data: r,
         };
@@ -141,7 +145,7 @@ export default function Dashboard() {
       // Persist fetched records to SyncedRecord so they load on next app start
       // Sequential small batches to avoid rate limits
       (async () => {
-        const existing = await base44.entities.SyncedRecord.list('-created_date', 2000);
+        const existing = await base44.entities.Lead.list('-created_date', 2000);
         const existingMap = {};
         existing.forEach(r => { existingMap[r.smartsuite_id] = r; });
 
@@ -149,19 +153,20 @@ export default function Dashboard() {
         const toUpdate = [];
 
         mapped.forEach(r => {
-          const { raw_data, smartsuite_status, ...fields } = r;
-          // fields now includes first_name, last_name, name, email, phone, company, city, lead_date
+          // Werkstatus (status/bron) hoort bij de opvolging hier, niet bij de SmartSuite-instroom:
+          // bij bestaande leads alleen de instroomvelden bijwerken, bij nieuwe leads status 'nieuw' + bron 'smartsuite' zetten
+          const { raw_data, smartsuite_status, status, bron, ...fields } = r;
           if (existingMap[r.smartsuite_id]) {
             toUpdate.push({ id: existingMap[r.smartsuite_id].id, data: { ...fields, raw_data, smartsuite_status } });
           } else {
-            toCreate.push({ ...fields, raw_data, smartsuite_status });
+            toCreate.push({ ...fields, status, bron, raw_data, smartsuite_status });
           }
         });
 
         // Bulk create new records in chunks of 50
         const CREATE_CHUNK = 50;
         for (let i = 0; i < toCreate.length; i += CREATE_CHUNK) {
-          await base44.entities.SyncedRecord.bulkCreate(toCreate.slice(i, i + CREATE_CHUNK));
+          await base44.entities.Lead.bulkCreate(toCreate.slice(i, i + CREATE_CHUNK));
           if (i + CREATE_CHUNK < toCreate.length) await new Promise(r => setTimeout(r, 300));
         }
 
@@ -169,7 +174,7 @@ export default function Dashboard() {
         const UPDATE_CHUNK = 5;
         for (let i = 0; i < toUpdate.length; i += UPDATE_CHUNK) {
           const chunk = toUpdate.slice(i, i + UPDATE_CHUNK);
-          await Promise.all(chunk.map(({ id, data }) => base44.entities.SyncedRecord.update(id, data)));
+          await Promise.all(chunk.map(({ id, data }) => base44.entities.Lead.update(id, data)));
           if (i + UPDATE_CHUNK < toUpdate.length) await new Promise(r => setTimeout(r, 300));
         }
       })();
@@ -197,11 +202,11 @@ export default function Dashboard() {
 
   const handleStatusSave = async (rec, newStatus) => {
     try {
-      const found = await base44.entities.SyncedRecord.filter({ smartsuite_id: rec.smartsuite_id });
+      const found = await base44.entities.Lead.filter({ smartsuite_id: rec.smartsuite_id });
       if (found.length > 0) {
-        await base44.entities.SyncedRecord.update(found[0].id, { smartsuite_status: newStatus });
+        await base44.entities.Lead.update(found[0].id, { status: newStatus });
       }
-      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, smartsuite_status: newStatus } : r));
+      setRecords(prev => prev.map(r => r.smartsuite_id === rec.smartsuite_id ? { ...r, status: newStatus } : r));
       toast({ title: 'Status bijgewerkt', description: `"${rec.name}" → ${newStatus}` });
     } catch (e) {
       toast({ title: 'Status opslaan mislukt', description: e.message, variant: 'destructive' });
@@ -340,7 +345,7 @@ export default function Dashboard() {
                     <th className="px-4 py-2.5 text-left font-medium">Telefoon</th>
                     <th className="px-4 py-2.5 text-left font-medium">Bedrijf</th>
                     <th className="px-4 py-2.5 text-left font-medium">Plaats</th>
-                    <th className="px-4 py-2.5 text-left font-medium">SmartSuite Status</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Status</th>
                     <th className="px-4 py-2.5 text-left font-medium">Acties</th>
                   </tr>
                 </thead>

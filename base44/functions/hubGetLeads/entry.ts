@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     let total = 0;
     let skip = 0;
     while (true) {
-      const batch = await base44.asServiceRole.entities.SyncedRecord.filter(query, '-lead_date', COUNT_BATCH, skip);
+      const batch = await base44.asServiceRole.entities.Lead.filter(query, '-lead_date', COUNT_BATCH, skip);
       total += batch.length;
       if (batch.length < COUNT_BATCH) break;
       skip += COUNT_BATCH;
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
 
     // --- fetch the requested page, stable sorted on lead_date desc ---
     const page = total > offset
-      ? await base44.asServiceRole.entities.SyncedRecord.filter(query, '-lead_date', limit, offset)
+      ? await base44.asServiceRole.entities.Lead.filter(query, '-lead_date', limit, offset)
       : [];
 
     const results = page.map((r) => {

@@ -4,12 +4,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RefreshCw, CheckCircle2, Eye, Copy, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-const SMARTSUITE_STATUSES = [
-  'New', 'Contacted', 'Meeting Scheduled', 'Demo Done', 'Qualified', 'Not Interested',
+const LEAD_STATUSES = [
+  'nieuw', 'te benaderen', 'benaderd', 'gekwalificeerd', 'offerte',
+  'gewonnen', 'verloren', 'niet gekwalificeerd', 'duplicaat', 'junk',
 ];
 
 export default function RecordRow({ record, onStatusSave, onViewDetail }) {
-  const [selectedStatus, setSelectedStatus] = useState(record.smartsuite_status || '');
+  const [selectedStatus, setSelectedStatus] = useState(record.status || 'nieuw');
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -35,7 +36,9 @@ export default function RecordRow({ record, onStatusSave, onViewDetail }) {
       <td className="px-4 py-3">
         <div className="cursor-pointer hover:underline" onClick={() => onViewDetail(record)}>
           <p className="font-medium text-sm text-primary">{record.name || '—'}</p>
-          <p className="text-xs text-muted-foreground">{record.smartsuite_id}</p>
+          {record.smartsuite_status && (
+            <p className="text-xs text-muted-foreground">SmartSuite: {record.smartsuite_status}</p>
+          )}
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
@@ -74,7 +77,7 @@ export default function RecordRow({ record, onStatusSave, onViewDetail }) {
               <SelectValue placeholder="Set status…" />
             </SelectTrigger>
             <SelectContent>
-              {SMARTSUITE_STATUSES.map(s => (
+              {LEAD_STATUSES.map(s => (
                 <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
               ))}
             </SelectContent>

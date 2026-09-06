@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Helper: get string from a SmartSuite field value
 function getStr(val) {
@@ -16,7 +16,7 @@ function getStr(val) {
   return String(val);
 }
 
-// Map a single SmartSuite record to SyncedRecord fields
+// Map a single SmartSuite record to Lead fields
 function mapRecord(record) {
   const r = record;
   const smartsuiteId = r.id;
@@ -52,28 +52,29 @@ function mapRecord(record) {
   };
 }
 
-// Upsert one mapped record into SyncedRecord (always sets sync_status = 'pending')
+// Upsert one mapped record into Lead.
+// New leads get status 'nieuw' and bron 'smartsuite'.
+// Existing leads only get their instroom fields refreshed —
+// the werkstatus (status, bron, eigenaar, opvolgdatum, ...) is never touched.
 async function upsertRecord(base44, leadData) {
-  const existing = await base44.asServiceRole.entities.SyncedRecord.filter({
+  const existing = await base44.asServiceRole.entities.Lead.filter({
     smartsuite_id: leadData.smartsuite_id
   });
 
   if (existing.length > 0) {
-    await base44.asServiceRole.entities.SyncedRecord.update(existing[0].id, {
-      ...leadData,
-      sync_status: 'pending',
-    });
+    await base44.asServiceRole.entities.Lead.update(existing[0].id, leadData);
     return 'updated';
-  } else {
-    await base44.asServiceRole.entities.SyncedRecord.create({
-      ...leadData,
-      sync_status: 'pending',
-    });
-    return 'created';
   }
+
+  await base44.asServiceRole.entities.Lead.create({
+    ...leadData,
+    status: 'nieuw',
+    bron: 'smartsuite',
+  });
+  return 'created';
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
 
@@ -122,4 +123,4 @@ Deno.serve(async (req) => {
     console.error('Webhook error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

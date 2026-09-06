@@ -1,0 +1,42 @@
+{
+  "name": "LeadContactmoment",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "ID van de Lead waar dit contactmoment bij hoort"
+    },
+    "datum": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Wanneer het contactmoment plaatsvond"
+    },
+    "wie": {
+      "type": "string",
+      "description": "Wie het contactmoment heeft gedaan"
+    },
+    "kanaal": {
+      "type": "string",
+      "enum": [
+        "telefoon",
+        "e-mail",
+        "whatsapp",
+        "bezoek",
+        "overig"
+      ]
+    },
+    "notitie": {
+      "type": "string"
+    },
+    "voys_call_id": {
+      "type": "string",
+      "description": "Optionele verwijzing naar de belregistratie in Voys"
+    }
+  },
+  "required": [
+    "lead_id",
+    "datum",
+    "wie",
+    "kanaal"
+  ]
+}

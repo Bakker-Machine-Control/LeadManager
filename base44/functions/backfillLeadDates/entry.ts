@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const records = await base44.asServiceRole.entities.SyncedRecord.list('-created_date', BATCH_SIZE, skip);
+        const records = await base44.asServiceRole.entities.Lead.list('-created_date', BATCH_SIZE, skip);
         if (records.length === 0) break;
 
         totalChecked += records.length;
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         for (const u of updates) {
           try {
             const { id, ...patch } = u;
-            await base44.asServiceRole.entities.SyncedRecord.update(id, patch);
+            await base44.asServiceRole.entities.Lead.update(id, patch);
             totalUpdated++;
             consecutiveErrors = 0;
           } catch (updateErr) {
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
               await new Promise(r => setTimeout(r, RATE_LIMIT_PAUSE));
               try {
                 const { id, ...patch } = u;
-                await base44.asServiceRole.entities.SyncedRecord.update(id, patch);
+                await base44.asServiceRole.entities.Lead.update(id, patch);
                 totalUpdated++;
               } catch (retryErr) {
                 console.error(`Retry also failed for ${u.id}:`, retryErr.message);
