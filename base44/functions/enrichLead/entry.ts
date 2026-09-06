@@ -186,8 +186,8 @@ STRIKTE REGELS:
 2. Verzin niets: laat een veld leeg ("") als het niet online te vinden is.
 3. Zet gevonden_bedrijf op false als er geen bedrijf met redelijke zekerheid aan deze lead te koppelen is.
 4. De doelgroep van de verkoper: Nederlandse en Belgische grondverzet-, infra-, GWW-, sloop- en loonwerkbedrijven met een eigen machinepark.
-6. Let apart op of het bedrijf al met 3D-machinebesturing of maaiveldbesturing werkt (merken: Leica, Trimble, Topcon, Novatron, Xsite, MOBA, Unicontrol), bijvoorbeeld genoemd op de website, in projectfoto's of in vacatures. Zet gebruikt_3d_machinebesturing op "ja" alleen als daar een concrete aanwijzing voor is, anders "onbekend".
-5. Vul tekstvelden in het Nederlands in en gebruik bij enumvelden precies de voorgeschreven waarden.`;
+5. Let apart op of het bedrijf al met 3D-machinebesturing of maaiveldbesturing werkt (merken: Leica, Trimble, Topcon, Novatron, Xsite, MOBA, Unicontrol), bijvoorbeeld genoemd op de website, in projectfoto's of in vacatures. Zet gebruikt_3d_machinebesturing op "ja" alleen als daar een concrete aanwijzing voor is, anders "onbekend".
+6. Vul tekstvelden in het Nederlands in en gebruik bij enumvelden precies de voorgeschreven waarden.`;
 
   const u = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
