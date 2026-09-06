@@ -68,6 +68,32 @@ async function telLeads(base44, query) {
   return laag + 1;
 }
 
+// Eén pagina voor de kolom "Nieuw", op score aflopend.
+//
+// Of de databank leads zónder score vooraan of achteraan zet bij een aflopende
+// sortering is niet gegarandeerd. Daarom wordt de pagina uit twee gescheiden
+// stromen opgebouwd: eerst de leads mét score (score aflopend), daarna de nog
+// niet verrijkte leads (nieuwste eerst). Zo staan verrijkte leads altijd
+// bovenaan de kolom — over álle leads, niet alleen over de geladen pagina.
+async function haalNieuwPagina(base44, query, perKolom, offset) {
+  const metScore = { ...query, score: { $ne: null } };
+  const aantalMetScore = await telLeads(base44, metScore);
+
+  const pagina = [];
+  if (offset < aantalMetScore) {
+    const nodig = Math.min(perKolom, aantalMetScore - offset);
+    pagina.push(...await base44.asServiceRole.entities.Lead.filter(metScore, '-score', nodig, offset));
+  }
+  if (pagina.length < perKolom) {
+    const zonderScore = { ...query, score: null };
+    const zonderOffset = Math.max(0, offset - aantalMetScore);
+    pagina.push(...await base44.asServiceRole.entities.Lead.filter(
+      zonderScore, '-created_date', perKolom - pagina.length, zonderOffset,
+    ));
+  }
+  return pagina;
+}
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -112,17 +138,13 @@ export default async function (req) {
       let leads = [];
       const offset = Math.max(Number(offsets[status]) || 0, 0);
       if (totaal > offset) {
-        // De kolom "Nieuw" kan niet op score sorteren in de databank: de pagina
-        // wordt dan in de functie op score gesorteerd (leads zonder score
-        // onderaan). De overige kolommen sorteert de databank serverzijdig op
-        // lead_date aflopend. Per kolom worden hoogstens per_kolom (max. 200)
-        // records opgehaald, dus het blijft licht.
-        const sortVeld = status === 'Nieuw' ? '-created_date' : '-lead_date';
-        const pagina = await base44.asServiceRole.entities.Lead.filter(query, sortVeld, perKolom, offset);
+        // De kolom "Nieuw" staat op score aflopend (zie haalNieuwPagina), de
+        // overige kolommen op lead_date aflopend. Per kolom worden hoogstens
+        // per_kolom (max. 200) records opgehaald, dus het blijft licht.
+        const pagina = status === 'Nieuw'
+          ? await haalNieuwPagina(base44, query, perKolom, offset)
+          : await base44.asServiceRole.entities.Lead.filter(query, '-lead_date', perKolom, offset);
         leads = pagina.map(leanLead);
-        if (status === 'Nieuw') {
-          leads.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
-        }
       }
       kolommen[status] = { totaal, leads };
     });
