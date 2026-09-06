@@ -10,7 +10,9 @@ const fmtDate = (d) => {
 };
 
 export default function Meta() {
-  const { leads, loading, fout, reload } = useAllLeads();
+  // Uitsluitend leads uit BMC's eigen Meta-advertenties (bron 'meta') —
+  // serverzijdig gefilterd. De SmartSuite-instroom hoort hier niet thuis.
+  const { leads, loading, fout, reload } = useAllLeads({ bron: 'meta' });
 
   // Groepeer per advertentie (op ad_naam, anders ad_id), met aantal leads per advertentie
   const groups = useMemo(() => {
@@ -32,7 +34,7 @@ export default function Meta() {
       <div>
         <h1 className="text-2xl font-bold">Meta</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
-          Meta-advertentiegegevens per lead uit SmartSuite, gegroepeerd per advertentie
+          Leads uit BMC's eigen Meta-advertenties
         </p>
       </div>
 
@@ -50,6 +52,17 @@ export default function Meta() {
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
+      ) : leads.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+            <Megaphone className="w-8 h-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground max-w-lg">
+              BMC's eigen Meta-koppeling is nog niet ingericht. Zodra advertenties van BMC
+              zelf binnenkomen, verschijnen ze hier. De leads uit de SmartSuite-instroom
+              staan onder SmartSuite — dat is Unicontrols wereldwijde trechter, niet die van BMC.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {groups.map(group => (

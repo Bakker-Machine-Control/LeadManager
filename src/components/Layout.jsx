@@ -24,8 +24,8 @@ export default function Layout() {
               <RefreshCw className="w-4 h-4 text-primary-foreground" />
             </div>
             <div>
-              <p className="font-bold text-sm text-foreground leading-tight">LeadSync</p>
-              <p className="text-xs text-muted-foreground">SmartSuite Lead Hub</p>
+              <p className="font-bold text-sm text-foreground leading-tight">BMC Sales tool</p>
+              <p className="text-xs text-muted-foreground">Leads en verkoop</p>
             </div>
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function Layout() {
           })}
         </nav>
         <div className="p-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">LeadSync v1.0</p>
+          <p className="text-xs text-muted-foreground text-center">BMC Sales tool</p>
         </div>
       </aside>
 

@@ -8,8 +8,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 //   antwoord: { ok, per_kolom, wachtend_op_verrijking, kolommen: { Nieuw: { totaal, leads }, ... } }
 //   Optioneel `alleen: 'Nieuw'` om uitsluitend één kolom te verversen (voor "Meer laden").
 //
-// Lijstmodus ({ modus: 'lijst', skip, limit }): platte pagina met alle leads,
-// gebruikt door de Meta-pagina.
+// Lijstmodus ({ modus: 'lijst', skip, limit, bron }): platte pagina met leads,
+// gebruikt door de Meta-pagina. Optioneel `bron` filtert serverzijdig op
+// herkomst (bijv. 'meta' voor BMC's eigen Meta-advertenties).
 
 const STATUSSEN = ['Nieuw', 'Contacten', 'Afspraak', 'Afgerond', 'Afgewezen'];
 const STAP = 1000;
@@ -107,7 +108,9 @@ export default async function (req) {
     if (body.modus === 'lijst') {
       const limit = Math.min(Math.max(Number(body.limit) || 1000, 1), 1000);
       const skip = Math.max(Number(body.skip) || 0, 0);
-      const batch = await base44.asServiceRole.entities.Lead.list('-created_date', limit, skip);
+      const bron = typeof body.bron === 'string' && body.bron.trim() ? body.bron.trim() : null;
+      const query = bron ? { bron } : {};
+      const batch = await base44.asServiceRole.entities.Lead.filter(query, '-created_date', limit, skip);
       return Response.json({
         ok: true,
         leads: batch.map(leanLead),

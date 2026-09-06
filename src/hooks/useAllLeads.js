@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 
 // Laadt álle leads pagina voor pagina via getLeadBoardData in lijstmodus
 // (licht gewicht, zonder raw_data). Gebruikt door de Meta-pagina.
-export function useAllLeads() {
+// Optioneel `bron`: filtert serverzijdig op herkomst (bijv. 'meta').
+export function useAllLeads({ bron } = {}) {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fout, setFout] = useState(null);
@@ -16,7 +17,7 @@ export function useAllLeads() {
     try {
       let verder = true;
       while (verder) {
-        const res = await base44.functions.invoke('getLeadBoardData', { modus: 'lijst', skip, limit: 1000 });
+        const res = await base44.functions.invoke('getLeadBoardData', { modus: 'lijst', skip, limit: 1000, ...(bron ? { bron } : {}) });
         const data = res.data || {};
         const page = data.leads || [];
         all.push(...page);
@@ -31,7 +32,7 @@ export function useAllLeads() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [bron]);
 
   useEffect(() => { load(); }, [load]);
 

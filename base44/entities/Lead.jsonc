@@ -71,13 +71,14 @@
       "type": "string",
       "enum": [
         "smartsuite",
+        "meta",
         "telefoon",
         "website",
         "aanbeveling",
         "overig"
       ],
       "default": "smartsuite",
-      "description": "Herkomst van de lead"
+      "description": "Herkomst van de lead. 'meta' = lead uit BMC's eigen Meta-advertenties. Let op: leads met bron 'smartsuite' komen uit Unicontrols wereldwijde trechter en zijn dus NIET van BMC zelf."
     },
     "quote_id": {
       "type": "string",
