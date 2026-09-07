@@ -182,6 +182,11 @@ export default function KanbanLeadModal({ lead, open, onClose }) {
                 />
                 <Row icon={Building2} label="Sector" value={volledig.bedrijf_sector || '—'} />
                 <Row icon={MapPin} label="Bedrijfplaats" value={volledig.bedrijf_plaats || '—'} />
+                <Row
+                  icon={MapPin}
+                  label="Adres"
+                  value={[volledig.bedrijf_adres, volledig.bedrijf_postcode].filter(Boolean).join(', ') || '—'}
+                />
               </div>
             </div>
 

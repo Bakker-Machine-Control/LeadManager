@@ -37,6 +37,8 @@ function leanLead(l) {
     score: l.score ?? null,
     score_label: l.score_label || '',
     verrijking_status: l.verrijking_status || 'niet_verrijkt',
+    bedrijf_adres: l.bedrijf_adres || '',
+    bedrijf_postcode: l.bedrijf_postcode || '',
   };
 }
 

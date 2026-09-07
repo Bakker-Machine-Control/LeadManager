@@ -68,6 +68,8 @@ function mapLead(r) {
     bedrijf_sector: r.bedrijf_sector || '',
     bedrijf_omvang: r.bedrijf_omvang || '',
     bedrijf_plaats: r.bedrijf_plaats || '',
+    bedrijf_adres: r.bedrijf_adres || '',
+    bedrijf_postcode: r.bedrijf_postcode || '',
     bedrijf_activiteit: r.bedrijf_activiteit || '',
     machinepark: r.machinepark || '',
     verrijking: r.verrijking || null,

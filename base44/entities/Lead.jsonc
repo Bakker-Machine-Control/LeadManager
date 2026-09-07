@@ -179,6 +179,14 @@
       "type": "string",
       "description": "Plaats waar het bedrijf gevestigd is"
     },
+    "bedrijf_adres": {
+      "type": "string",
+      "description": "Straat en huisnummer van de vestiging, online gevonden bij de verrijking"
+    },
+    "bedrijf_postcode": {
+      "type": "string",
+      "description": "Postcode van de vestiging, online gevonden bij de verrijking"
+    },
     "bedrijf_activiteit": {
       "type": "string",
       "description": "Wat het bedrijf doet, in \u00e9\u00e9n of twee zinnen"

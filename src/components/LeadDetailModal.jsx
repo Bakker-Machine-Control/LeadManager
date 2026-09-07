@@ -255,6 +255,7 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
               </div>
             </div>
             <Row icon={Hash} label="KvK" value={record.bedrijf_kvk || '—'} />
+            <Row icon={MapPin} label="Adres" value={[record.bedrijf_adres, record.bedrijf_postcode].filter(Boolean).join(', ') || '—'} />
             <Row icon={Building2} label="Sector" value={record.bedrijf_sector || '—'} />
             <Row icon={Building2} label="Omvang" value={record.bedrijf_omvang || '—'} />
             <Row icon={Building2} label="Activiteit" value={record.bedrijf_activiteit || '—'} />

@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Versiemarkering van de scorerubriek, zodat in het antwoord zichtbaar is
 // welke versie van de rubriek live draait.
-const RUBRIEK_VERSIE = '2026-09-06-machinebesturing';
+const RUBRIEK_VERSIE = '2026-09-07-adres';
 
 // ============================================================================
 // SCORINGRUBRIEK — bewust als leesbare constanten bovenin, zodat de score
@@ -87,6 +87,8 @@ const VERRIJKING_SCHEMA = {
     kvk_nummer: { type: 'string' },
     land: { type: 'string', enum: ['NL', 'BE', 'anders', ''] },
     plaats: { type: 'string' },
+    adres: { type: 'string' },
+    postcode: { type: 'string' },
     sector: { type: 'string' },
     sector_categorie: {
       type: 'string',
@@ -192,7 +194,8 @@ STRIKTE REGELS:
 3. Zet gevonden_bedrijf op false als er geen bedrijf met redelijke zekerheid aan deze lead te koppelen is.
 4. De doelgroep van de verkoper: Nederlandse en Belgische grondverzet-, infra-, GWW-, sloop- en loonwerkbedrijven met een eigen machinepark.
 5. Let apart op of het bedrijf al met 3D-machinebesturing of maaiveldbesturing werkt (merken: Leica, Trimble, Topcon, Novatron, Xsite, MOBA, Unicontrol), bijvoorbeeld genoemd op de website, in projectfoto's of in vacatures. Zet gebruikt_3d_machinebesturing op "ja" alleen als daar een concrete aanwijzing voor is, anders "onbekend".
-6. Vul tekstvelden in het Nederlands in en gebruik bij enumvelden precies de voorgeschreven waarden.`;
+6. Zoek ook het vestigingsadres van het bedrijf op: straat en huisnummer in 'adres' (zonder plaats en postcode) en de postcode in 'postcode' (Nederlands formaat, bijv. '1234 AB').
+7. Vul tekstvelden in het Nederlands in en gebruik bij enumvelden precies de voorgeschreven waarden.`;
 
   const u = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
@@ -287,6 +290,8 @@ export default async function (req) {
           bedrijf_sector: u.sector || '',
           bedrijf_omvang: MEDEWERKERS_TEKST[u.aantal_medewerkers_indicatie] || 'onbekend',
           bedrijf_plaats: u.plaats || '',
+          bedrijf_adres: u.adres || '',
+          bedrijf_postcode: u.postcode || '',
           bedrijf_activiteit: u.activiteit || '',
           machinepark: u.machinepark_toelichting || '',
           gebruikt_machinebesturing: u.gebruikt_3d_machinebesturing === 'ja'
