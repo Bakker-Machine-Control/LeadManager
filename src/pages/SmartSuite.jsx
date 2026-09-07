@@ -11,7 +11,10 @@ import { RefreshCw, Users, Search, ArrowUpDown, Calendar, Globe } from 'lucide-r
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-const NL_QUERY = { $or: [{ phone_country: 'NL' }, { phone_e164: { $regex: '^\\+31' } }] };
+// De SmartSuite-pagina toont uitsluitend het SmartSuite-kanaal; Meta- en Website-leads
+// blijven gescheiden en komen alleen op het dashboard samen.
+const SS_QUERY = { bron: 'smartsuite' };
+const NL_QUERY = { ...SS_QUERY, $or: [{ phone_country: 'NL' }, { phone_e164: { $regex: '^\\+31' } }] };
 
 const flagEmoji = (code) => /^[A-Z]{2}$/.test(code)
   ? String.fromCodePoint(...[...code].map(c => 127397 + c.charCodeAt(0)))
@@ -91,7 +94,7 @@ export default function SmartSuite() {
 
   const loadRecords = async () => {
     const existing = showAllCountries
-      ? await base44.entities.Lead.list('-created_date', 1000)
+      ? await base44.entities.Lead.filter(SS_QUERY, '-created_date', 1000)
       : await base44.entities.Lead.filter(NL_QUERY, '-created_date', 1000);
     setRecords(existing.map(mapLead));
   };
@@ -100,7 +103,7 @@ export default function SmartSuite() {
     base44.entities.AppSettings.filter({ key: 'main' }).then(s => {
       if (s.length > 0) setSettings(s[0]);
     });
-    base44.functions.invoke('getLeadCountryStats', {}).then(res => {
+    base44.functions.invoke('getLeadCountryStats', { bron: 'smartsuite' }).then(res => {
       if (res.data?.total != null) setCountryStats(res.data);
     }).catch(() => {});
     loadRecords();
@@ -245,7 +248,7 @@ export default function SmartSuite() {
           if (i + UPDATE_CHUNK < toUpdate.length) await new Promise(r => setTimeout(r, 200));
         }
 
-        base44.functions.invoke('getLeadCountryStats', {}).then(res => {
+        base44.functions.invoke('getLeadCountryStats', { bron: 'smartsuite' }).then(res => {
           if (res.data?.total != null) setCountryStats(res.data);
         }).catch(() => {});
       })();

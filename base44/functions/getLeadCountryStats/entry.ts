@@ -19,12 +19,19 @@ export default async function (req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Optioneel kanaalfilter (bijv. 'smartsuite') zodat elke pagina alleen de
+    // eigen instroom telt; zonder bron telt de functie alles.
+    let body = {};
+    try { body = await req.json(); } catch { body = {}; }
+    const bron = typeof body.bron === 'string' && body.bron.trim() ? body.bron.trim() : null;
+    const query = bron ? { bron } : {};
+
     const counts = {};
     let total = 0;
     let skip = 0;
 
     while (true) {
-      const batch = await base44.entities.Lead.list('-created_date', 1000, skip);
+      const batch = await base44.entities.Lead.filter(query, '-created_date', 1000, skip);
       batch.forEach(r => {
         total++;
         let code = (r.phone_country || '').toUpperCase();
