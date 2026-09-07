@@ -73,12 +73,14 @@
         "smartsuite",
         "meta",
         "telefoon",
+        "persoonlijk",
+        "beurs",
         "website",
         "aanbeveling",
         "overig"
       ],
       "default": "smartsuite",
-      "description": "Herkomst van de lead. 'meta' = lead uit BMC's eigen Meta-advertenties. Let op: leads met bron 'smartsuite' komen uit Unicontrols wereldwijde trechter en zijn dus NIET van BMC zelf."
+      "description": "Herkomst van de lead. 'meta' = lead uit BMC's eigen Meta-advertenties. 'telefoon', 'persoonlijk' en 'beurs' = handmatig toegevoegd via de pagina Direct. Let op: leads met bron 'smartsuite' komen uit Unicontrols wereldwijde trechter en zijn dus NIET van BMC zelf."
     },
     "quote_id": {
       "type": "string",

@@ -1,9 +1,10 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Settings, RefreshCw, Globe, Inbox, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Settings, RefreshCw, Globe, Inbox, Megaphone, PhoneCall } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { separator: 'channels' },
+  { path: '/direct', label: 'Direct', icon: PhoneCall },
   { path: '/meta', label: 'Meta', icon: Megaphone },
   { path: '/website', label: 'Website', icon: Globe },
   { path: '/smartsuite', label: 'SmartSuite', icon: Inbox },

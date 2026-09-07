@@ -2,6 +2,7 @@ import { Draggable } from '@hello-pangea/dnd';
 import { format, parseISO } from 'date-fns';
 import { Building2, MapPin, Phone } from 'lucide-react';
 import ScoreBadge from '@/components/ScoreBadge';
+import BronBadge from '@/components/kanban/BronBadge';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -22,6 +23,7 @@ export default function LeadCard({ lead, index, onClick }) {
         >
           <div className="flex items-start justify-between gap-2">
             <p className="font-medium truncate flex-1">{lead.name || '—'}</p>
+            <BronBadge bron={lead.bron} />
             <ScoreBadge score={lead.score} score_label={lead.score_label} />
           </div>
           {lead.company && (

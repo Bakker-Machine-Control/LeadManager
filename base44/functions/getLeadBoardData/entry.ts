@@ -27,6 +27,7 @@ function leanLead(l) {
     phone_e164: l.phone_e164 || '',
     lead_date: l.lead_date || '',
     status: l.status || 'Nieuw',
+    bron: l.bron || '',
     meta_lead_id: l.meta_lead_id || '',
     ad_id: l.ad_id || '',
     ad_naam: l.ad_naam || '',
