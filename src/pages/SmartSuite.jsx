@@ -317,7 +317,7 @@ export default function SmartSuite() {
     }
     if (!leadId) throw new Error('Lead niet gevonden in de database.');
 
-    const res = await base44.functions.invoke('enrichLead', { lead_id: leadId });
+    const res = await base44.functions.invoke('verrijkLead', { lead_id: leadId });
     if (res.data?.ok === false) throw new Error(res.data?.error || 'Verrijking mislukt.');
 
     const fresh = mapLead(await base44.entities.Lead.get(leadId));
