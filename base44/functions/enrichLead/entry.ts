@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Versiemarkering van de scorerubriek, zodat in het antwoord zichtbaar is
 // welke versie van de rubriek live draait.
-const RUBRIEK_VERSIE = '2026-09-10-onbekend';
+const RUBRIEK_VERSIE = '2026-09-10-onbekend'; // staat in elk antwoord, zodat te zien is welke versie er draait
 
 // ============================================================================
 // SCORINGRUBRIEK — bewust als leesbare constanten bovenin, zodat de score
