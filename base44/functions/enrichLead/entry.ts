@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Versiemarkering van de scorerubriek, zodat in het antwoord zichtbaar is
 // welke versie van de rubriek live draait.
-const RUBRIEK_VERSIE = '2026-09-07-adres';
+const RUBRIEK_VERSIE = '2026-09-10-onbekend';
 
 // ============================================================================
 // SCORINGRUBRIEK — bewust als leesbare constanten bovenin, zodat de score
@@ -274,15 +274,23 @@ export default async function (req) {
         }
 
         const u = await zoekOnline(base44, lead);
-        const score = berekenScore(u);
-        const scoreLabel = scoreNaarLabel(score);
+
+        // Geen bedrijf gevonden: geen standaardpunten voor "onbekend"
+        // toekennen — niets gevonden is geen lauwe lead maar een
+        // onbekende. Score leeg, geen punten berekend.
+        const geenBedrijf = u.gevonden_bedrijf === false;
+        const score = geenBedrijf ? null : berekenScore(u);
+        const scoreLabel = geenBedrijf ? 'Onbekend' : scoreNaarLabel(score);
+        const scoreReden = geenBedrijf
+          ? 'Geen bedrijf gevonden bij deze gegevens.'
+          : bouwScoreReden(u);
 
         // Alleen verrijkingsvelden wegschrijven — status, eigenaar, opvolgdatum,
         // bron en raw_data blijven onaangetast
         await base44.asServiceRole.entities.Lead.update(lead.id, {
           score,
           score_label: scoreLabel,
-          score_reden: bouwScoreReden(u),
+          score_reden: scoreReden,
           verrijkt_op: new Date().toISOString(),
           verrijking_status: 'gelukt',
           bedrijf_website: u.website || '',

@@ -221,6 +221,16 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
           )}
         </div>
 
+        {/* Uit telefoongesprek */}
+        {record.gesprek_samenvatting && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Uit telefoongesprek</p>
+            <div className="rounded-lg border border-border px-3 py-2 text-sm whitespace-pre-wrap">
+              {record.gesprek_samenvatting}
+            </div>
+          </div>
+        )}
+
         {/* Verrijking */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-1">

@@ -26,6 +26,10 @@
       "type": "string",
       "description": "Geheime sleutel waarmee SmartSuite leads naar de lead-webhook pusht (?secret= of body.secret). Is het veld leeg, dan weigert de webhook alles (401)."
     },
+    "lead_create_key": {
+      "type": "string",
+      "description": "Sleutel waarmee de hub-app leads aanmaakt via hubCreateLead (header x-lead-create-key). Leeg = hubCreateLead weigert alles met 401."
+    },
     "crm_webhook_url": {
       "type": "string",
       "description": "URL van de webhook-ontvanger in de CRM-app (Base44 hub-app 697b419b2ddb6f5c960bbf07) waar contactpersonen naartoe gepusht worden bij de overgang van Nieuw naar Contacten."

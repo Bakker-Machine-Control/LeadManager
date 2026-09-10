@@ -139,6 +139,16 @@ export default function KanbanLeadModal({ lead, open, onClose }) {
               )}
             </div>
 
+            {/* Uit telefoongesprek */}
+            {volledig.gesprek_samenvatting && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Uit telefoongesprek</p>
+                <div className="rounded-lg border border-border px-3 py-2 text-sm whitespace-pre-wrap">
+                  {volledig.gesprek_samenvatting}
+                </div>
+              </div>
+            )}
+
             {/* Opvolging — bewerkbaar */}
             <div className="mt-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Opvolging</p>

@@ -4,7 +4,7 @@
   "properties": {
     "smartsuite_id": {
       "type": "string",
-      "description": "The record ID from SmartSuite (source of the inbound lead)"
+      "description": "Record-id uit SmartSuite. Leeg bij leads die niet uit SmartSuite komen, bijvoorbeeld uit een telefoongesprek."
     },
     "first_name": {
       "type": "string"
@@ -126,6 +126,14 @@
       "type": "string",
       "description": "Aangeleverde tekst uit het Meta-formulier, uit het SmartSuite-veld sfa31637c2"
     },
+    "voys_call_id": {
+      "type": "string",
+      "description": "Voys-gespreks-id als deze lead uit een telefoongesprek komt. Sleutel voor idempotentie."
+    },
+    "gesprek_samenvatting": {
+      "type": "string",
+      "description": "Samenvatting van het telefoongesprek waaruit deze lead ontstond, van Voys."
+    },
     "score": {
       "type": "number",
       "description": "Verrijkingsscore. Hoger = beter passend bij de doelgroep van BMC. Leeg = nog niet verrijkt of onvoldoende gegevens."
@@ -210,7 +218,5 @@
       "description": "Raw record data from SmartSuite. Bevat onder meer de campagne, het formuliertype (getaquote, bookademo) en een checklist met belpogingen van het internationale team."
     }
   },
-  "required": [
-    "smartsuite_id"
-  ]
+  "required": []
 }
