@@ -41,7 +41,7 @@ export default function Dashboard() {
   const handleVerrijk = async () => {
     setVerrijken(true);
     try {
-      const res = await base44.functions.invoke('enrichLead', { status: 'Nieuw', limit: 25 });
+      const res = await base44.functions.invoke('verrijkLead', { status: 'Nieuw', limit: 25 });
       const d = res.data || {};
       toast({
         title: 'Verrijking klaar',
