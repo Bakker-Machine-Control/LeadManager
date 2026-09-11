@@ -6,13 +6,88 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 //
 // Roept de hub-endpoints hubGetCompanies en hubGetContacts aan met de
 // parameter q (vrije tekstzoeking op bedrijfsnaam, contactnaam, e-mail en
-// telefoonnummer — zodra de HUB-app die ondersteunt).
+// telefoonnummer). De HUB kan veel (en grote) records teruggeven, daarom
+// worden de records hier server-side tot de noodzakelijke velden vermagerd
+// en per soort tot MAX_RESULTATEN begrensd; het totaal wél teruggegeven.
 //
 // Authenticatie naar de HUB-app via de header x-hub-api-key, gelijk aan
 // AppSettings.hub_api_key (record key 'main'). Aanroepen mag uitsluitend
 // een ingelogde gebruiker van deze app.
 
 const HUB_BASE_URL = 'https://bmc-zoho-i-phone-contacts-sync-960bbf07.base44.app/functions';
+const MAX_RESULTATEN = 10;
+
+const tekst = (v) => (typeof v === 'string' ? v.trim() : '');
+
+// ---------------------------------------------------------------------------
+// Eigen filter bovenop de HUB-resultaten. De q-zoeking van de HUB is erg
+// ruim (losse karakters matchen al, waardoor bijna alles terugkomt), dus
+// hier wordt opnieuw streng gecontroleerd: gedeeltelijke match op naam,
+// e-mail, website of plaats, en cijfermatch op telefoonnummers.
+// ---------------------------------------------------------------------------
+
+function bevat(waarde, qLower) {
+  return typeof waarde === 'string' && waarde.toLowerCase().includes(qLower);
+}
+
+function telefoonMatcht(tel, qCijfers) {
+  if (!qCijfers || qCijfers.length < 4) return false;
+  const telCijfers = (typeof tel === 'string' ? tel : '').replace(/\D/g, '');
+  return Boolean(telCijfers) && telCijfers.includes(qCijfers);
+}
+
+function bedrijfMatcht(r, qLower, qCijfers) {
+  const velden = ['name', 'naam', 'bedrijfsnaam', 'email', 'website', 'billing_city'];
+  for (const veld of velden) {
+    if (bevat(r?.[veld], qLower)) return true;
+  }
+  return telefoonMatcht(r?.phone, qCijfers);
+}
+
+function contactMatcht(r, qLower, qCijfers) {
+  const velden = ['first_name', 'last_name', 'full_name', 'naam', 'name', 'email', 'company'];
+  for (const veld of velden) {
+    if (bevat(r?.[veld], qLower)) return true;
+  }
+  return telefoonMatcht(r?.phone, qCijfers) || telefoonMatcht(r?.mobile, qCijfers);
+}
+
+// Vindt de eerste gevulde waarde; veldnamen in de HUB-app kunnen per koppeling verschillen
+function pak(record, sleutels) {
+  for (const sleutel of sleutels) {
+    const v = record?.[sleutel];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+    if (typeof v === 'number') return String(v);
+  }
+  return '';
+}
+
+function mapBedrijf(r) {
+  return {
+    id: tekst(r?.id),
+    naam: pak(r, ['name', 'naam', 'bedrijfsnaam']),
+    plaats: pak(r, ['billing_city', 'plaats', 'city']),
+    email: pak(r, ['email', 'Email']),
+    telefoon: pak(r, ['phone', 'telefoon']),
+    website: tekst(r?.website),
+    adres: pak(r, ['billing_street', 'straat']),
+    postcode: pak(r, ['billing_postcode', 'postcode']),
+    zoho_id: tekst(r?.zoho_id),
+  };
+}
+
+function mapContact(r) {
+  return {
+    id: tekst(r?.id),
+    voornaam: pak(r, ['first_name', 'voornaam']),
+    achternaam: pak(r, ['last_name', 'achternaam']),
+    naam: pak(r, ['full_name', 'naam', 'name']),
+    email: pak(r, ['email', 'Email']),
+    telefoon: pak(r, ['phone', 'telefoon', 'mobile', 'mobiel']),
+    bedrijf: pak(r, ['company', 'bedrijf', 'company_name']),
+    zoho_id: tekst(r?.zoho_id),
+  };
+}
 
 export default async function (req) {
   try {
@@ -23,8 +98,8 @@ export default async function (req) {
     let body = {};
     try { body = await req.json(); } catch { body = {}; }
     const q = String(body.q || '').trim();
-    if (!q) {
-      return Response.json({ error: 'Zoekterm ontbreekt.' }, { status: 400 });
+    if (q.length < 2) {
+      return Response.json({ error: 'Zoekterm moet minimaal 2 tekens bevatten.' }, { status: 400 });
     }
 
     const settings = await base44.asServiceRole.entities.AppSettings.filter({ key: 'main' });
@@ -56,9 +131,22 @@ export default async function (req) {
       return [];
     };
 
-    const [bedrijven, contacten] = await Promise.all([lees(bedrijvenRes), lees(contactenRes)]);
+    const [ruweBedrijven, ruweContacten] = await Promise.all([lees(bedrijvenRes), lees(contactenRes)]);
 
-    return Response.json({ ok: true, q, bedrijven, contacten });
+    // Nogmaals streng filteren: de HUB geeft bij een losse q te veel terug
+    const qLower = q.toLowerCase();
+    const qCijfers = q.replace(/\D/g, '');
+    const alleBedrijven = ruweBedrijven.filter((r) => bedrijfMatcht(r, qLower, qCijfers));
+    const alleContacten = ruweContacten.filter((r) => contactMatcht(r, qLower, qCijfers));
+
+    return Response.json({
+      ok: true,
+      q,
+      totaal_bedrijven: alleBedrijven.length,
+      totaal_contacten: alleContacten.length,
+      bedrijven: alleBedrijven.slice(0, MAX_RESULTATEN).map(mapBedrijf),
+      contacten: alleContacten.slice(0, MAX_RESULTATEN).map(mapContact),
+    });
   } catch (error) {
     console.error('zoekHubKlant error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
