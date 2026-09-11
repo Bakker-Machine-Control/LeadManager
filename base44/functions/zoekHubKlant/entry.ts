@@ -19,39 +19,6 @@ const MAX_RESULTATEN = 10;
 
 const tekst = (v) => (typeof v === 'string' ? v.trim() : '');
 
-// ---------------------------------------------------------------------------
-// Eigen filter bovenop de HUB-resultaten. De q-zoeking van de HUB is erg
-// ruim (losse karakters matchen al, waardoor bijna alles terugkomt), dus
-// hier wordt opnieuw streng gecontroleerd: gedeeltelijke match op naam,
-// e-mail, website of plaats, en cijfermatch op telefoonnummers.
-// ---------------------------------------------------------------------------
-
-function bevat(waarde, qLower) {
-  return typeof waarde === 'string' && waarde.toLowerCase().includes(qLower);
-}
-
-function telefoonMatcht(tel, qCijfers) {
-  if (!qCijfers || qCijfers.length < 4) return false;
-  const telCijfers = (typeof tel === 'string' ? tel : '').replace(/\D/g, '');
-  return Boolean(telCijfers) && telCijfers.includes(qCijfers);
-}
-
-function bedrijfMatcht(r, qLower, qCijfers) {
-  const velden = ['name', 'naam', 'bedrijfsnaam', 'email', 'website', 'billing_city'];
-  for (const veld of velden) {
-    if (bevat(r?.[veld], qLower)) return true;
-  }
-  return telefoonMatcht(r?.phone, qCijfers);
-}
-
-function contactMatcht(r, qLower, qCijfers) {
-  const velden = ['first_name', 'last_name', 'full_name', 'naam', 'name', 'email', 'company'];
-  for (const veld of velden) {
-    if (bevat(r?.[veld], qLower)) return true;
-  }
-  return telefoonMatcht(r?.phone, qCijfers) || telefoonMatcht(r?.mobile, qCijfers);
-}
-
 // Vindt de eerste gevulde waarde; veldnamen in de HUB-app kunnen per koppeling verschillen
 function pak(record, sleutels) {
   for (const sleutel of sleutels) {
@@ -131,13 +98,7 @@ export default async function (req) {
       return [];
     };
 
-    const [ruweBedrijven, ruweContacten] = await Promise.all([lees(bedrijvenRes), lees(contactenRes)]);
-
-    // Nogmaals streng filteren: de HUB geeft bij een losse q te veel terug
-    const qLower = q.toLowerCase();
-    const qCijfers = q.replace(/\D/g, '');
-    const alleBedrijven = ruweBedrijven.filter((r) => bedrijfMatcht(r, qLower, qCijfers));
-    const alleContacten = ruweContacten.filter((r) => contactMatcht(r, qLower, qCijfers));
+    const [alleBedrijven, alleContacten] = await Promise.all([lees(bedrijvenRes), lees(contactenRes)]);
 
     return Response.json({
       ok: true,
