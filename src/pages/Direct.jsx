@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { UserPlus, Loader2 } from 'lucide-react';
+import KlantZoeker from '@/components/direct/KlantZoeker';
 
 // Handmatig een lead toevoegen — bijv. iemand die belt, in persoon langskomt of op een beurs
 const BRON_OPTIES = [
@@ -36,6 +37,17 @@ export default function Direct() {
   const [saving, setSaving] = useState(false);
 
   const setVeld = (veld) => (e) => setForm((f) => ({ ...f, [veld]: e.target.value }));
+
+  // Gevonden HUB-klant in het formulier zetten; al ingevulde velden blijven staan
+  const pasKlantToe = (klant) => setForm((f) => ({
+    ...f,
+    voornaam: klant.voornaam || f.voornaam,
+    achternaam: klant.achternaam || f.achternaam,
+    bedrijf: klant.bedrijf || f.bedrijf,
+    email: klant.email || f.email,
+    telefoon: klant.telefoon || f.telefoon,
+    plaats: klant.plaats || f.plaats,
+  }));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -82,6 +94,7 @@ export default function Direct() {
         Voor leads die buiten de digitale kanalen binnenkomen: telefonisch, in persoon of op een beurs.
         De lead verschijnt direct in het Kanban-bord bij Nieuw.
       </p>
+      <KlantZoeker onKlantGekozen={pasKlantToe} />
       <Card>
         <CardHeader>
           <CardTitle>Nieuwe lead</CardTitle>

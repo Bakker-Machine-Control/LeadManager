@@ -37,6 +37,10 @@
     "crm_api_key": {
       "type": "string",
       "description": "Gedeelde API-sleutel die bij de CRM-webhook meegestuurd wordt (header x-crm-api-key)."
+    },
+    "hub_api_key": {
+      "type": "string",
+      "description": "Gedeelde API-sleutel van de BMC HUB-app, verstuurd als header x-hub-api-key bij het zoeken van bestaande klanten en bedrijven (hubGetCompanies / hubGetContacts)."
     }
   },
   "required": [

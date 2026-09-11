@@ -22,6 +22,7 @@ export default function Settings() {
     lead_webhook_key: '',
     crm_webhook_url: '',
     crm_api_key: '',
+    hub_api_key: '',
   });
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function Settings() {
           lead_webhook_key: s.lead_webhook_key || '',
           crm_webhook_url: s.crm_webhook_url || '',
           crm_api_key: s.crm_api_key || '',
+          hub_api_key: s.hub_api_key || '',
         });
       }
       setLoading(false);
@@ -202,6 +204,16 @@ export default function Settings() {
         <CardContent className="space-y-4">
           <Field label="CRM Webhook URL" name="crm_webhook_url" placeholder="https://…base44.app/functions/createContact" />
           <Field label="CRM API-sleutel" name="crm_api_key" placeholder="Gedeelde sleutel van de CRM-app" secret />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">BMC HUB-koppeling</CardTitle>
+          <CardDescription>API-sleutel van de BMC HUB-app (header x-hub-api-key) waarmee de pagina Direct bestaande bedrijven en contacten opzoekt via hubGetCompanies en hubGetContacts.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="HUB API-sleutel" name="hub_api_key" placeholder="Gedeelde sleutel van de BMC HUB-app" secret />
         </CardContent>
       </Card>
 
