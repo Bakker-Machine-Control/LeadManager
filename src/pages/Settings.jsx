@@ -199,7 +199,7 @@ export default function Settings() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">CRM-koppeling (Base44 CRM-app)</CardTitle>
-          <CardDescription>Zodra een lead van Nieuw naar Contacten gaat, wordt de contactpersoon automatisch in de CRM-app aangemaakt. Vul hier de webhook-URL van de CRM-ontvanger en de gedeelde API-sleutel in.</CardDescription>
+          <CardDescription>Zodra een lead van Nieuw naar Contacten gaat, worden de contactpersoon én het bedrijf automatisch in de CRM-app aangemaakt. Bestaat het bedrijf daar al, dan wordt het gekoppeld i.p.v. gedupliceerd. De ontvanger geeft contact_id (en optioneel company_id) terug, die op de lead worden opgeslagen. Vul hier de webhook-URL van de CRM-ontvanger en de gedeelde API-sleutel in.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="CRM Webhook URL" name="crm_webhook_url" placeholder="https://…base44.app/functions/createContact" />

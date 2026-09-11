@@ -1,10 +1,13 @@
-// Maakt automatisch een contactpersoon aan in de CRM-app (Base44 hub-app)
-// zodra een lead van "Nieuw" naar "Contacten" gaat. Wordt aangeroepen door de
-// entity-automation op Lead, maar kan ook handmatig met { lead_id }.
+// Maakt automatisch een contactpersoon én bedrijf aan in de CRM-app (Base44
+// hub-app) zodra een lead van "Nieuw" naar "Contacten" gaat. Wordt aangeroepen
+// door de entity-automation op Lead, maar kan ook handmatig met { lead_id }.
 // De CRM-ontvanger staat in AppSettings (crm_webhook_url + crm_api_key).
-// De koppeling terug wordt op de Lead opgeslagen in contact_fsm_id
-// (en de directe link in crm_contact_url).
+// Bestaat het bedrijf al in de CRM-app (exacte naamtreffer via hubGetCompanies),
+// dan wordt het id meegepast zodat de ontvanger koppelt i.p.v. dupliceert.
+// De koppelingen terug worden op de Lead opgeslagen in contact_fsm_id en
+// company_fsm_id (plus de directe link in crm_contact_url).
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { HUB_BASE_URL } from '../../shared/hubApp.ts';
 
 export default async function(req) {
   const base44 = createClientFromRequest(req);
@@ -29,6 +32,33 @@ export default async function(req) {
     const apiKey = instelling?.crm_api_key;
     if (!webhookUrl || !apiKey) {
       throw new Error('CRM-koppeling is niet geconfigureerd \u2014 vul de CRM Webhook URL en API-sleutel in bij Instellingen');
+    }
+
+    // Bestaand bedrijf opzoeken in de CRM-app, zodat de ontvanger kan
+    // koppelen in plaats van een dubbel bedrijf aan te maken. Alleen bij
+    // een exacte naamtreffer wordt het id meegegeven.
+    let bestaandBedrijfId = lead.company_fsm_id || null;
+    let bestaandBedrijfNaam = null;
+    const bedrijfsNaam = (lead.company || '').trim();
+    if (!bestaandBedrijfId && bedrijfsNaam && instelling?.hub_api_key) {
+      try {
+        const zoekRes = await fetch(
+          `${HUB_BASE_URL}/hubGetCompanies?q=${encodeURIComponent(bedrijfsNaam)}`,
+          { headers: { 'x-hub-api-key': instelling.hub_api_key } },
+        );
+        if (zoekRes.ok) {
+          const zoekData = await zoekRes.json().catch(() => null);
+          const lijst = Array.isArray(zoekData)
+            ? zoekData
+            : (zoekData?.data || zoekData?.results || zoekData?.bedrijven || []);
+          const exact = lijst.find((b) =>
+            typeof b?.name === 'string' && b.name.trim().toLowerCase() === bedrijfsNaam.toLowerCase());
+          if (exact) {
+            bestaandBedrijfId = exact.id;
+            bestaandBedrijfNaam = exact.name;
+          }
+        }
+      } catch { /* bedrijf zoeken mag de contactpersoon-push niet blokkeren */ }
     }
 
     // Alle leadgegevens + de koppeling terug naar de lead-app meesturen.
@@ -63,6 +93,13 @@ export default async function(req) {
       campagne: lead.campagne || null,
       ad_naam: lead.ad_naam || null,
       platform: lead.platform || null,
+      // Bedrijf: de ontvanger koppelt het bestaande bedrijf (id) of maakt
+      // een nieuw bedrijf aan met onderstaande gegevens.
+      bestaand_bedrijf_id: bestaandBedrijfId,
+      bestaand_bedrijf_naam: bestaandBedrijfNaam,
+      bedrijf_adres: lead.bedrijf_adres || null,
+      bedrijf_postcode: lead.bedrijf_postcode || null,
+      bedrijf_kvk: lead.bedrijf_kvk || null,
     };
 
     const res = await fetch(webhookUrl, {
@@ -83,17 +120,24 @@ export default async function(req) {
       throw new Error(`CRM-app stuurde geen contact_id terug: ${JSON.stringify(data).slice(0, 300)}`);
     }
     const contactUrl = data.contact_url || data.contact?.url || null;
+    // Optioneel: als de ontvanger ook het bedrijf (heeft) aangemaakt, wordt
+    // het id hier opgehaald en op de lead opgeslagen in company_fsm_id.
+    const companyId = data.company_id || data.bedrijf_id || data?.company?.id || bestaandBedrijfId || null;
 
-    await svc.entities.Lead.update(lead.id, { contact_fsm_id: contactId, crm_contact_url: contactUrl });
+    await svc.entities.Lead.update(lead.id, {
+      contact_fsm_id: contactId,
+      crm_contact_url: contactUrl,
+      ...(companyId ? { company_fsm_id: companyId } : {}),
+    });
     await svc.entities.SyncLog.create({
       action: 'sync',
       status: 'success',
-      message: `Contactpersoon aangemaakt in de CRM-app voor lead ${lead.name || lead.id}`,
+      message: `Contactpersoon${companyId ? ' en bedrijf' : ''} aangemaakt in de CRM-app voor lead ${lead.name || lead.id}`,
       records_affected: 1,
-      details: { lead_id: lead.id, contact_fsm_id: contactId, crm_contact_url: contactUrl },
+      details: { lead_id: lead.id, contact_fsm_id: contactId, crm_contact_url: contactUrl, company_fsm_id: companyId },
     });
 
-    return Response.json({ success: true, contact_fsm_id: contactId, crm_contact_url: contactUrl });
+    return Response.json({ success: true, contact_fsm_id: contactId, crm_contact_url: contactUrl, company_fsm_id: companyId });
   } catch (error) {
     try {
       await base44.asServiceRole.entities.SyncLog.create({

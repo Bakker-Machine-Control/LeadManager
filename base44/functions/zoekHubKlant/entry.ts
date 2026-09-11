@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { HUB_BASE_URL } from '../../shared/hubApp.ts';
 
 // Zoekt bestaande bedrijven en contacten in de BMC HUB-app (CRM-app), zodat
 // bij het handmatig invoeren van een lead (pagina Direct) eerst gecheckt kan
@@ -14,7 +15,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // AppSettings.hub_api_key (record key 'main'). Aanroepen mag uitsluitend
 // een ingelogde gebruiker van deze app.
 
-const HUB_BASE_URL = 'https://bmc-zoho-i-phone-contacts-sync-960bbf07.base44.app/functions';
 const MAX_RESULTATEN = 10;
 
 const tekst = (v) => (typeof v === 'string' ? v.trim() : '');
