@@ -1,0 +1,83 @@
+{
+  "name": "Bezoek",
+  "type": "object",
+  "description": "E\u00e9n sessie van een websitebezoeker. Eindigt na 30 minuten zonder activiteit.",
+  "properties": {
+    "bezoek_id": {
+      "type": "string",
+      "description": "Sessie-ID uit de tracking-service, uniek per bezoek"
+    },
+    "bezoeker_id": {
+      "type": "string",
+      "description": "bezoeker_id van de bijbehorende Bezoeker"
+    },
+    "gestart_op": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "beeindigd_op": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duur": {
+      "type": "number",
+      "description": "Duur in seconden"
+    },
+    "aantal_paginas": {
+      "type": "number",
+      "default": 0
+    },
+    "landingspagina": {
+      "type": "string"
+    },
+    "uitgangspagina": {
+      "type": "string"
+    },
+    "referrer": {
+      "type": "string"
+    },
+    "bron": {
+      "type": "string",
+      "enum": [
+        "google",
+        "facebook",
+        "instagram",
+        "linkedin",
+        "direct",
+        "email",
+        "overig"
+      ],
+      "default": "direct"
+    },
+    "utm_source": {
+      "type": "string"
+    },
+    "utm_medium": {
+      "type": "string"
+    },
+    "utm_campaign": {
+      "type": "string"
+    },
+    "utm_content": {
+      "type": "string"
+    },
+    "gesprek_id": {
+      "type": "string",
+      "description": "Verwijzing naar het chatgesprek dat tijdens dit bezoek is gevoerd (fase 2)"
+    },
+    "actief": {
+      "type": "boolean",
+      "default": true,
+      "description": "Waar zolang de bezoeker de afgelopen minuut een hartslag stuurde"
+    },
+    "huidige_pagina": {
+      "type": "string",
+      "description": "Pagina waar de bezoeker nu is (alleen zinvol als actief)"
+    }
+  },
+  "required": [
+    "bezoek_id",
+    "bezoeker_id",
+    "gestart_op"
+  ]
+}

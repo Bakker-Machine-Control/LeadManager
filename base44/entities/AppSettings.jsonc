@@ -41,6 +41,10 @@
     "hub_api_key": {
       "type": "string",
       "description": "Gedeelde API-sleutel van de BMC HUB-app, verstuurd als header x-hub-api-key bij het zoeken van bestaande klanten en bedrijven (hubGetCompanies / hubGetContacts)."
+    },
+    "website_track_key": {
+      "type": "string",
+      "description": "Sleutel waarmee de tracking-service op de Mac Studio bezoekersdata aanlevert via websiteTrack (header x-website-track-key). Leeg = websiteTrack weigert alles met 401."
     }
   },
   "required": [

@@ -1,0 +1,124 @@
+{
+  "name": "Bezoeker",
+  "type": "object",
+  "description": "Unieke websitebezoeker (browser) van www.bmc-consultancy.com, aangeleverd door de tracking-service op de Mac Studio via de functie websiteTrack. Vervangt het Bezoekers-scherm van Zoho SalesIQ.",
+  "properties": {
+    "bezoeker_id": {
+      "type": "string",
+      "description": "Willekeurig ID uit de first-party cookie op de website. Uniek per browser."
+    },
+    "eerste_bezoek": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "laatste_bezoek": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "aantal_bezoeken": {
+      "type": "number",
+      "default": 0
+    },
+    "aantal_paginas_totaal": {
+      "type": "number",
+      "default": 0
+    },
+    "totale_duur": {
+      "type": "number",
+      "description": "Totale tijd op de website in seconden, over alle bezoeken"
+    },
+    "plaats": {
+      "type": "string"
+    },
+    "provincie": {
+      "type": "string"
+    },
+    "land": {
+      "type": "string"
+    },
+    "landcode": {
+      "type": "string",
+      "description": "ISO-landcode in kleine letters, bijv. nl"
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lon": {
+      "type": "number"
+    },
+    "browser": {
+      "type": "string"
+    },
+    "besturingssysteem": {
+      "type": "string"
+    },
+    "apparaat": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobiel",
+        "tablet",
+        "onbekend"
+      ],
+      "default": "onbekend"
+    },
+    "taal": {
+      "type": "string",
+      "description": "Browsertaal, bijv. nl-NL"
+    },
+    "ip_adres": {
+      "type": "string",
+      "description": "Ingekort IP-adres (laatste octet is 0), alleen voor herkenning van bedrijfsnetwerken"
+    },
+    "eerste_bron": {
+      "type": "string",
+      "enum": [
+        "google",
+        "facebook",
+        "instagram",
+        "linkedin",
+        "direct",
+        "email",
+        "overig"
+      ],
+      "default": "direct",
+      "description": "Herkomst van het eerste bezoek, afgeleid van referrer en utm_source"
+    },
+    "eerste_referrer": {
+      "type": "string"
+    },
+    "naam": {
+      "type": "string",
+      "description": "Gevuld zodra bekend uit een chatgesprek of lead"
+    },
+    "bedrijf": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "telefoon": {
+      "type": "string"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Verwijzing naar de Lead zodra deze bezoeker een lead is geworden"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "anoniem",
+        "bekend",
+        "lead",
+        "klant"
+      ],
+      "default": "anoniem"
+    },
+    "notities": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "bezoeker_id"
+  ]
+}

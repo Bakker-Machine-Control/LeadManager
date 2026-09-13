@@ -1,0 +1,46 @@
+{
+  "name": "Paginaweergave",
+  "type": "object",
+  "description": "E\u00e9n bekeken pagina binnen een Bezoek, inclusief de tijd die de bezoeker erop doorbracht.",
+  "properties": {
+    "weergave_id": {
+      "type": "string",
+      "description": "Uniek ID uit de tracking-service, voor idempotente updates van de duur"
+    },
+    "bezoek_id": {
+      "type": "string"
+    },
+    "bezoeker_id": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "pad": {
+      "type": "string",
+      "description": "Alleen het pad, bijv. /unicontrol/graafmachine"
+    },
+    "titel": {
+      "type": "string"
+    },
+    "gestart_op": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duur": {
+      "type": "number",
+      "description": "Duur in seconden, bijgewerkt via hartslag en afsluit-event"
+    },
+    "volgorde": {
+      "type": "number",
+      "description": "Volgnummer binnen het bezoek, beginnend bij 1"
+    }
+  },
+  "required": [
+    "weergave_id",
+    "bezoek_id",
+    "bezoeker_id",
+    "url",
+    "gestart_op"
+  ]
+}
