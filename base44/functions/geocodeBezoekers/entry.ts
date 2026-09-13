@@ -29,16 +29,19 @@ export default async function (req) {
 
     let body = {};
     try { body = await req.json(); } catch { body = {}; }
-    const limit = Math.min(Math.max(Number(body.limit) || 40, 1), 100);
+    const limit = Math.min(Math.max(Number(body.limit) || 20, 1), 100);
 
     // ---- Bezoekers zonder coördinaten maar met plaats ----
-    const kandidaten = (await db.Bezoeker.filter({ lat: null }, '-created_date', 500))
-      .filter((b) => (b.lat === null || b.lat === undefined) && norm(b.plaats) && norm(b.landcode));
-    const resterend = kandidaten.length;
-    const batch = kandidaten.slice(0, limit);
-
     const cache = new Map();
     for (const c of await db.Plaatscoordinaat.list('-created_date', 1000)) cache.set(c.sleutel, c);
+
+    // Bezoekers zonder coördinaten, met plaats; plaatsen die al als 'niet
+    // gevonden' in de cache staan worden overgeslagen.
+    const kandidaten = (await db.Bezoeker.filter({ lat: null }, '-created_date', 500))
+      .filter((b) => (b.lat === null || b.lat === undefined) && norm(b.plaats) && norm(b.landcode))
+      .filter((b) => { const c = cache.get(`${norm(b.plaats)}|${norm(b.provincie)}|${norm(b.landcode)}`); return !c || c.gevonden; });
+    const resterend = kandidaten.length;
+    const batch = kandidaten.slice(0, limit);
 
     let bijgewerkt = 0, opgezocht = 0, nietGevonden = 0;
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -79,8 +82,6 @@ export default async function (req) {
         bijgewerkt++;
       } else {
         nietGevonden++;
-        // Markeer met lat 0 zodat deze niet eindeloos opnieuw geprobeerd wordt
-        await db.Bezoeker.update(b.id, { lat: 0, lon: 0 });
       }
     }
 
