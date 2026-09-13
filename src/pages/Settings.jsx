@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Eye, EyeOff, Settings2, Search } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings2, Search, Wand2 } from 'lucide-react';
 import { discoverSmartSuiteTableIds } from '@/functions/discoverSmartSuiteTableIds';
 
 export default function Settings() {
@@ -23,6 +23,7 @@ export default function Settings() {
     crm_webhook_url: '',
     crm_api_key: '',
     hub_api_key: '',
+    website_track_key: '',
   });
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function Settings() {
           crm_webhook_url: s.crm_webhook_url || '',
           crm_api_key: s.crm_api_key || '',
           hub_api_key: s.hub_api_key || '',
+          website_track_key: s.website_track_key || '',
         });
       }
       setLoading(false);
@@ -84,6 +86,12 @@ export default function Settings() {
       const errorMsg = error.response?.data?.error || error.message || 'Fout bij zoeken';
       toast({ title: 'Fout', description: errorMsg, variant: 'destructive' });
     }
+  };
+
+  const genereerTrackKey = () => {
+    const tekens = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const sleutel = Array.from({ length: 40 }, () => tekens[Math.floor(Math.random() * tekens.length)]).join('');
+    setForm(p => ({ ...p, website_track_key: sleutel }));
   };
 
   const Field = ({ label, name, placeholder, secret }) => (
@@ -214,6 +222,19 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="HUB API-sleutel" name="hub_api_key" placeholder="Gedeelde sleutel van de BMC HUB-app" secret />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Website-tracking</CardTitle>
+          <CardDescription>Sleutel waarmee de tracking-service op de Mac Studio bezoekersevents aanlevert via de functie websiteTrack (header x-website-track-key). Leeg = websiteTrack weigert alles met 401.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="Track-sleutel" name="website_track_key" placeholder="Sleutel voor de tracking-service" secret />
+          <Button variant="outline" size="sm" onClick={genereerTrackKey} className="gap-2">
+            <Wand2 className="w-4 h-4" /> Sleutel genereren (40 tekens)
+          </Button>
         </CardContent>
       </Card>
 

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import ScoreBadge from '@/components/ScoreBadge';
+import { base44 } from '@/api/base44Client';
+import { Link } from 'react-router-dom';
 import { LEAD_STATUSES } from '@/lib/leadStatuses';
 
 const formatDate = (d) => {
@@ -78,10 +80,17 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [websiteBezoeker, setWebsiteBezoeker] = useState(null);
 
   useEffect(() => {
     setSelectedStatus(record?.status || 'Nieuw');
     setStatusSaved(false);
+    setWebsiteBezoeker(null);
+    if (record?.id) {
+      base44.entities.Bezoeker.filter({ lead_id: record.id })
+        .then(r => setWebsiteBezoeker(r[0] || null))
+        .catch(() => setWebsiteBezoeker(null));
+    }
   }, [record?.id]);
 
   if (!record) return null;
@@ -227,6 +236,25 @@ export default function LeadDetailModal({ record, open, onClose, fieldLabels = {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Uit telefoongesprek</p>
             <div className="rounded-lg border border-border px-3 py-2 text-sm whitespace-pre-wrap">
               {record.gesprek_samenvatting}
+            </div>
+          </div>
+        )}
+
+        {/* Websitebezoeken */}
+        {websiteBezoeker && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Websitebezoeken</p>
+            <div className="rounded-lg border border-border px-3 py-2 flex items-center justify-between gap-2">
+              <p className="text-sm">
+                {websiteBezoeker.aantal_bezoeken || 0} bezoeken
+                {websiteBezoeker.laatste_bezoek ? ` · laatste ${formatDate(websiteBezoeker.laatste_bezoek)}` : ''}
+              </p>
+              <Link
+                to={`/website?bezoeker=${websiteBezoeker.id}`}
+                className="text-sm text-primary hover:underline underline-offset-4 whitespace-nowrap"
+              >
+                Naar bezoekersprofiel
+              </Link>
             </div>
           </div>
         )}
