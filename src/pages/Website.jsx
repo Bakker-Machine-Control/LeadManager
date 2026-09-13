@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Globe, RefreshCw, LayoutDashboard, Users, MapPin } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { websiteStats } from '@/functions/websiteStats';
+import { format, subDays } from 'date-fns';
 import { periodeRange } from '@/lib/websiteUtils';
 import OverzichtTab from '@/components/website/OverzichtTab';
 import BezoekersTab from '@/components/website/BezoekersTab';
@@ -32,15 +32,30 @@ export default function Website() {
   const range = periodeRange(periode, van, tot);
 
   const laadStats = useCallback(async () => {
+    // Eigen periode zonder complete datums: niets ophalen (geen stille 7-daagse fallback)
+    if (periode === 'eigen' && (!van || !tot)) {
+      setStats(null);
+      return;
+    }
     setLaden(true);
     try {
-      const res = await websiteStats({ periode, van, tot });
+      const r = periodeRange(periode, van, tot);
+      const res = await base44.functions.invoke('websiteStats', { periode, van: r.van, tot: r.tot });
       setStats(res.data);
     } catch (e) {
       toast({ title: 'Fout bij laden statistieken', description: e.message, variant: 'destructive' });
     }
     setLaden(false);
   }, [periode, van, tot]);
+
+  // Bij "Eigen periode" meteen een geldige standaardrange: afgelopen week
+  const kiesPeriode = (keuze) => {
+    setPeriode(keuze);
+    if (keuze === 'eigen' && (!van || !tot)) {
+      setVan(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
+      setTot(format(new Date(), 'yyyy-MM-dd'));
+    }
+  };
 
   useEffect(() => {
     laadStats();
@@ -85,7 +100,7 @@ export default function Website() {
           </a>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <Select value={periode} onValueChange={setPeriode}>
+          <Select value={periode} onValueChange={kiesPeriode}>
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PERIODES.map((p) => (

@@ -33,10 +33,16 @@ export default async function (req) {
     let tot;
     const periode = typeof body.periode === 'string' && body.periode.trim() ? body.periode.trim() : '7d';
     if (periode === 'eigen') {
-      van = new Date(body.van || nu.getTime() - 7 * 86400000);
-      tot = new Date(body.tot || nu);
-      if (isNaN(van.getTime())) van = new Date(nu.getTime() - 7 * 86400000);
-      if (isNaN(tot.getTime())) tot = nu;
+      const vanDatum = new Date(body.van);
+      const totDatum = new Date(body.tot);
+      if (!body.van || !body.tot || isNaN(vanDatum.getTime()) || isNaN(totDatum.getTime())) {
+        return Response.json(
+          { error: 'Ongeldige eigen periode: vul zowel een begin- als einddatum in.' },
+          { status: 400 }
+        );
+      }
+      van = vanDatum;
+      tot = totDatum;
     } else if (periode === 'vandaag') {
       van = new Date(Date.UTC(nu.getUTCFullYear(), nu.getUTCMonth(), nu.getUTCDate()));
       tot = nu;
