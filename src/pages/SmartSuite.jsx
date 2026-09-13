@@ -26,6 +26,7 @@ const countryName = (code) => { try { return (regionNames && regionNames.of(code
 import RecordRow from '@/components/RecordRow';
 import SyncLogPanel from '@/components/SyncLogPanel';
 import LeadDetailModal from '@/components/LeadDetailModal';
+import LeadKaart from '@/components/smartsuite/LeadKaart';
 
 // Meta-advertentiegegevens uit een SmartSuite-record (Question 1 t/m Answer 3 zijn leeg en worden niet overgenomen)
 function metaFields(r, ssStr) {
@@ -404,6 +405,9 @@ export default function SmartSuite() {
           </Card>
         ))}
       </div>
+
+      {/* Kaart met leadplaatsen */}
+      <LeadKaart records={displayedRecords} onOpenLead={setSelectedRecord} />
 
       {/* Records Table */}
       <Card>
