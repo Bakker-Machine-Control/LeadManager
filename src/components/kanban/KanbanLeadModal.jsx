@@ -11,6 +11,7 @@ import ScoreBadge from '@/components/ScoreBadge';
 import ContactmomentForm from './ContactmomentForm';
 import ContactmomentLijst from './ContactmomentLijst';
 import EigenaarSelect from './EigenaarSelect';
+import HubZoeker from './HubZoeker';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd-MM-yyyy') : '—'; } catch { return d || '—'; }
@@ -171,6 +172,12 @@ export default function KanbanLeadModal({ lead, open, onClose }) {
                   {bezig ? 'Opslaan…' : 'Opslaan'}
                 </Button>
               </div>
+            </div>
+
+            {/* CRM (HUB) — bedrijf en plaats opzoeken en toevoegen */}
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">CRM (HUB)</p>
+              <HubZoeker lead={volledig} onBijgewerkt={setVolledig} />
             </div>
 
             {/* Verrijking */}
