@@ -189,6 +189,9 @@ export default async function (req) {
         } else {
           // ---- heartbeat of leave ----
           const duur = getal(event.duur);
+          // Bezoeker in de cache zetten zodat de totalen na de batch ook
+          // herberekend worden als deze batch geen pageview bevat.
+          await haalBezoeker(bezoekerId);
 
           const bestaande = await db.Paginaweergave.filter({ weergave_id: weergaveId }, '-created_date', 1);
           if (bestaande.length > 0 && duur !== null && (bestaande[0].duur || 0) < duur) {
