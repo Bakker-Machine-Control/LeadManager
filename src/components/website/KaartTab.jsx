@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet.heat';
 import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
@@ -12,10 +14,22 @@ const puntIcoon = L.divIcon({
   iconAnchor: [6, 6],
 });
 
-function KaartViews() {
+function KaartViews({ heatmap, setHeatmap }) {
   const map = useMap();
   return (
     <div className="absolute top-3 right-3 z-[1000] flex gap-2">
+      <label
+        className="flex cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-slate-800 shadow-sm hover:bg-slate-100"
+        title="Toon bezoekers als dichtheidskaart in plaats van losse punten"
+      >
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-primary"
+          checked={heatmap}
+          onChange={(e) => setHeatmap(e.target.checked)}
+        />
+        Heatmap
+      </label>
       <button
         type="button"
         onClick={() => map.setView([52.2, 5.3], 7)}
@@ -34,8 +48,27 @@ function KaartViews() {
   );
 }
 
+// Warmtekaartlaag via leaflet.heat: tekent bezoekersdichtheid in plaats van losse punten
+function HeatmapLaag({ punten }) {
+  const map = useMap();
+  useEffect(() => {
+    const laag = L.heatLayer(
+      punten.map((p) => [p.lat, p.lon, 1]),
+      {
+        radius: 28,
+        blur: 22,
+        maxZoom: 12,
+        gradient: { 0.2: '#93c5fd', 0.45: '#3b82f6', 0.7: '#f59e0b', 1: '#dc2626' },
+      }
+    ).addTo(map);
+    return () => map.removeLayer(laag);
+  }, [map, punten]);
+  return null;
+}
+
 export default function KaartTab({ bezoekers, onOpenDetail }) {
   const punten = (bezoekers || []).filter((b) => b.lat != null && b.lon != null);
+  const [heatmap, setHeatmap] = useState(false);
 
   return (
     <Card>
@@ -70,7 +103,9 @@ export default function KaartTab({ bezoekers, onOpenDetail }) {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {punten.map((b) => (
+              {heatmap ? (
+                <HeatmapLaag punten={punten} />
+              ) : punten.map((b) => (
                 <Marker key={b.bezoeker_id} position={[b.lat, b.lon]} icon={puntIcoon}>
                   <Popup>
                     <div className="text-sm space-y-1 min-w-[180px]">
@@ -92,7 +127,7 @@ export default function KaartTab({ bezoekers, onOpenDetail }) {
                   </Popup>
                 </Marker>
               ))}
-              <KaartViews />
+              <KaartViews heatmap={heatmap} setHeatmap={setHeatmap} />
             </MapContainer>
           </div>
         )}
