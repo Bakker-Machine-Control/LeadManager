@@ -1,0 +1,33 @@
+{
+  "name": "Plaatscoordinaat",
+  "type": "object",
+  "description": "Cache van opgezochte co\u00f6rdinaten per plaats (via OpenStreetMap Nominatim), gebruikt om ge\u00efmporteerde SalesIQ-bezoekers zonder lat/lon op de kaart te zetten.",
+  "properties": {
+    "sleutel": {
+      "type": "string",
+      "description": "plaats|provincie|landcode in kleine letters"
+    },
+    "plaats": {
+      "type": "string"
+    },
+    "provincie": {
+      "type": "string"
+    },
+    "landcode": {
+      "type": "string"
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lon": {
+      "type": "number"
+    },
+    "gevonden": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "sleutel"
+  ]
+}
