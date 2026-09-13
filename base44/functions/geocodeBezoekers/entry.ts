@@ -11,6 +11,26 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 
+// Kies uit de Nominatim-resultaten de eigenlijke plaats (city/town/village)
+// in plaats van de gemeente-grens. Nominatim zet de gemeente (administrative
+// boundary) vaak bovenaan, maar het middelpunt van een gemeentegebied ligt
+// kilometer(s) naast het dorp zelf. Voorkeur voor place-typen, en daarbinnen
+// voor het kleinste (nauwkeurigste) omsluitende vlak.
+const kiesBeste = (lijst) => {
+  if (!Array.isArray(lijst) || lijst.length === 0) return null;
+  const voorkeur = ['city', 'town', 'village', 'hamlet', 'suburb', 'borough', 'quarter'];
+  const score = (r) => {
+    const isPlaats = r.class === 'place' || voorkeur.includes(r.addresstype);
+    let opp = 1e12;
+    if (Array.isArray(r.boundingbox) && r.boundingbox.length === 4) {
+      const [z, n, w, o] = r.boundingbox.map(Number);
+      opp = Number.isFinite(z) ? Math.abs((n - z) * (o - w)) : 1e12;
+    }
+    return (isPlaats ? 0 : 1) * 1e12 + opp;
+  };
+  return lijst.slice().sort((a, b) => score(a) - score(b))[0];
+};
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -50,7 +70,7 @@ export default async function (req) {
       const sleutel = `${norm(b.plaats)}|${norm(b.provincie)}|${norm(b.landcode)}`;
       let c = cache.get(sleutel);
       if (!c) {
-        const params = new URLSearchParams({ city: b.plaats, country: b.landcode, format: 'json', limit: '1' });
+        const params = new URLSearchParams({ city: b.plaats, country: b.landcode, format: 'json', limit: '5' });
         if (b.provincie) params.set('state', b.provincie);
         let hit = null;
         try {
@@ -68,7 +88,7 @@ export default async function (req) {
             });
             lijst = r.ok ? await r.json() : [];
           }
-          if (Array.isArray(lijst) && lijst.length > 0) hit = lijst[0];
+          hit = kiesBeste(lijst);
         } catch (_) { hit = null; }
         await sleep(1100);
         c = await db.Plaatscoordinaat.create({
