@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet.heat';
 import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
@@ -48,21 +47,51 @@ function KaartViews({ heatmap, setHeatmap }) {
   );
 }
 
-// Warmtekaartlaag via leaflet.heat: tekent bezoekersdichtheid in plaats van losse punten
+// Eigen warmtekaartlaag op een canvas in het overlay-pane. De externe plugin
+// (leaflet.heat) koppelt zich aan een globale Leaflet-variabele die onder Vite
+// niet bestaat, daarom tekenen we de dichtheid zelf met vervaagde cirkels.
 function HeatmapLaag({ punten }) {
   const map = useMap();
+
   useEffect(() => {
-    const laag = L.heatLayer(
-      punten.map((p) => [p.lat, p.lon, 1]),
-      {
-        radius: 28,
-        blur: 22,
-        maxZoom: 12,
-        gradient: { 0.2: '#93c5fd', 0.45: '#3b82f6', 0.7: '#f59e0b', 1: '#dc2626' },
+    const pane = map.getPanes().overlayPane;
+    const canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+    canvas.style.pointerEvents = 'none';
+    pane.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    const teken = () => {
+      const grootte = map.getSize();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = grootte.x * dpr;
+      canvas.height = grootte.y * dpr;
+      canvas.style.width = `${grootte.x}px`;
+      canvas.style.height = `${grootte.y}px`;
+      L.DomUtil.setPosition(canvas, map.containerPointToLayerPoint([0, 0]));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, grootte.x, grootte.y);
+      const straal = 30; // pixels; overlappende cirkels versterken elkaar
+      for (const p of punten) {
+        const pt = map.latLngToContainerPoint([p.lat, p.lon]);
+        if (pt.x < -straal || pt.y < -straal || pt.x > grootte.x + straal || pt.y > grootte.y + straal) continue;
+        const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, straal);
+        grd.addColorStop(0, 'rgba(59,130,246,0.28)');
+        grd.addColorStop(1, 'rgba(59,130,246,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, straal, 0, Math.PI * 2);
+        ctx.fill();
       }
-    ).addTo(map);
-    return () => map.removeLayer(laag);
+    };
+
+    teken();
+    map.on('moveend zoomend resize', teken);
+    return () => {
+      map.off('moveend zoomend resize', teken);
+      canvas.remove();
+    };
   }, [map, punten]);
+
   return null;
 }
 
