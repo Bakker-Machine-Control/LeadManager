@@ -29,7 +29,7 @@ const STATUS_STIJL = {
 const STATUSEN = ['anoniem', 'bekend', 'lead', 'klant'];
 const BRONNEN = ['google', 'facebook', 'instagram', 'linkedin', 'direct', 'email', 'overig'];
 
-export default function BezoekersTab({ van, tot, onOpenDetail }) {
+export default function BezoekersTab({ van, tot, onOpenDetail, ververstOp }) {
   const [bezoekers, setBezoekers] = useState(null);
   const [landFilter, setLandFilter] = useState('alle');
   const [bronFilter, setBronFilter] = useState('alle');
@@ -41,7 +41,7 @@ export default function BezoekersTab({ van, tot, onOpenDetail }) {
     base44.entities.Bezoeker.list('-laatste_bezoek', 500)
       .then(setBezoekers)
       .catch(() => setBezoekers([]));
-  }, []);
+  }, [ververstOp]);
 
   const vanMs = new Date(van).getTime();
   const totMs = new Date(tot).getTime();
