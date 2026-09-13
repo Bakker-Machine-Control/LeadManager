@@ -28,6 +28,7 @@ export default function Website() {
   const [stats, setStats] = useState(null);
   const [laden, setLaden] = useState(false);
   const [geselecteerd, setGeselecteerd] = useState(null);
+  const [ververstOp, setVerverstOp] = useState(0);
 
   const range = periodeRange(periode, van, tot);
 
@@ -115,7 +116,15 @@ export default function Website() {
               <Input type="date" value={tot} onChange={(e) => setTot(e.target.value)} className="w-36" />
             </div>
           )}
-          <Button variant="outline" onClick={laadStats} disabled={laden} className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              laadStats();
+              setVerverstOp((n) => n + 1);
+            }}
+            disabled={laden}
+            className="gap-2"
+          >
             <RefreshCw className={`w-4 h-4 ${laden ? 'animate-spin' : ''}`} />
             Verversen
           </Button>
@@ -138,7 +147,7 @@ export default function Website() {
           <OverzichtTab stats={stats} laden={laden} />
         </TabsContent>
         <TabsContent value="bezoekers">
-          <BezoekersTab van={range.van} tot={range.tot} onOpenDetail={openBezoeker} />
+          <BezoekersTab van={range.van} tot={range.tot} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
         </TabsContent>
         <TabsContent value="kaart">
           <KaartTab bezoekers={stats?.kaart || []} onOpenDetail={openBezoeker} />
