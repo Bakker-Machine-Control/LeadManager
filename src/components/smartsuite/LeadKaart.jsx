@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 import { vlag } from '@/lib/websiteUtils';
+import usePlaatsCoords from '@/hooks/usePlaatsCoords';
 
-// Maximaal aantal nieuwe plaatsen dat per paginalading via Nominatim wordt
-// opgezocht (de server doet er maximaal 60 per aanroep, ca. 1 seconde per
-// plaats). De rest vult via de cache aan bij een volgend bezoek.
-const MAX_NIEUWE_LOOKUPS = 240;
 const MAX_MARKERS = 500;
 
 const plaatsSleutel = (plaats, landcode) => `${plaats.trim().toLowerCase()}||${landcode}`;
@@ -34,10 +30,6 @@ function PasViewAan({ punten }) {
 }
 
 export default function LeadKaart({ records, onOpenLead }) {
-  const [coords, setCoords] = useState({});
-  const [bezig, setBezig] = useState(false);
-  const [mislukt, setMislukt] = useState(false);
-
   // Unieke plaatsen in de getoonde leads
   const plaatsen = useMemo(() => {
     const map = new Map();
@@ -51,38 +43,8 @@ export default function LeadKaart({ records, onOpenLead }) {
     return [...map.values()];
   }, [records]);
 
-  // Ontbrekende coördinaten via de backendfunctie ophalen (met cache, in rondes)
-  useEffect(() => {
-    let stop = false;
-    (async () => {
-      const gevonden = {};
-      let lookups = 0;
-      setBezig(true);
-      setMislukt(false);
-      while (!stop) {
-        const wachtende = plaatsen.filter((p) => !(p.sleutel in gevonden)).slice(0, 300);
-        if (wachtende.length === 0 || lookups >= MAX_NIEUWE_LOOKUPS) break;
-        try {
-          const res = await base44.functions.invoke('geocodeLeadPlaatsen', { plaatsen: wachtende });
-          const resultaten = res.data?.resultaten || {};
-          let vooruitgang = 0;
-          for (const [k, v] of Object.entries(resultaten)) {
-            if (!(k in gevonden)) vooruitgang++;
-            gevonden[k] = v;
-          }
-          lookups += res.data?.opgezocht || 0;
-          setCoords({ ...gevonden });
-          if (vooruitgang === 0) break; // geen vooruitgang: stoppen
-        } catch {
-          setMislukt(true);
-          break;
-        }
-      }
-      if (!stop) setCoords({ ...gevonden });
-      setBezig(false);
-    })();
-    return () => { stop = true; };
-  }, [plaatsen]);
+  // Coördinaten via de gedeelde hook ophalen (met cache, in rondes)
+  const { coords, bezig, mislukt } = usePlaatsCoords(plaatsen);
 
   // Leads per plaats groeperen op de gevonden coördinaten
   const punten = useMemo(() => {

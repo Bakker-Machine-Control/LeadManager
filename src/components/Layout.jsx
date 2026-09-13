@@ -1,8 +1,9 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Settings, RefreshCw, Globe, Inbox, Megaphone, PhoneCall } from 'lucide-react';
+import { LayoutDashboard, Settings, RefreshCw, Globe, Inbox, Megaphone, PhoneCall, MapPin } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/kaart', label: 'Kaart', icon: MapPin },
   { separator: 'channels' },
   { path: '/direct', label: 'Direct', icon: PhoneCall },
   { path: '/meta', label: 'Meta', icon: Megaphone },

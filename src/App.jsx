@@ -13,6 +13,7 @@ import Meta from '@/pages/Meta';
 import Settings from '@/pages/Settings';
 import Website from '@/pages/Website';
 import Archief from '@/pages/Archief';
+import Kaart from '@/pages/Kaart';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -40,6 +41,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/website" element={<Website />} />
         <Route path="/archief" element={<Archief />} />
+        <Route path="/kaart" element={<Kaart />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
