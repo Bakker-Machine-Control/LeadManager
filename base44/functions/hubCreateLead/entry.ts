@@ -10,6 +10,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 //
 // Idempotent op voys_call_id; bestaat het gesprek al, dan wordt de
 // bestaande lead teruggegeven zonder iets aan te maken.
+//
+// Ook voor e-mail uit support@ (HUB, shared/mail.ts): dan is voys_call_id
+// 'mail:<message-id>' en komen bron 'email', kanaal 'e-mail' en
+// wie 'Mail (automatisch)' mee. Zonder die velden: telefoon, zoals altijd.
 
 // Telefoonpatroon op de laatste 9 cijfers — zelfde logica als
 // buildPhonePattern in hubGetLeads: scheidingstekens in het opgeslagen
@@ -63,6 +67,10 @@ export default async function (req) {
     const email = tekst(body.email);
     const city = tekst(body.city);
     const samenvatting = tekst(body.gesprek_samenvatting);
+    const isMail = tekst(body.bron) === 'email';
+    const bron = isMail ? 'email' : 'telefoon';
+    const kanaal = isMail ? 'e-mail' : 'telefoon';
+    const wie = tekst(body.wie) || (isMail ? 'Mail (automatisch)' : 'Voys (automatisch)');
 
     // ---- Idempotentie: bestaat er al een lead met dit gesprek? ----
     const bestaand = await base44.asServiceRole.entities.Lead.filter({ voys_call_id: voysCallId });
@@ -85,8 +93,8 @@ export default async function (req) {
         await base44.asServiceRole.entities.LeadContactmoment.create({
           lead_id: match[0].id,
           datum: new Date().toISOString(),
-          wie: 'Voys (automatisch)',
-          kanaal: 'telefoon',
+          wie,
+          kanaal,
           notitie: samenvatting,
           voys_call_id: voysCallId,
         });
@@ -117,7 +125,7 @@ export default async function (req) {
       phone_e164: e164 || phone,
       company,
       city,
-      bron: 'telefoon',
+      bron,
       status: 'Nieuw',
       verrijking_status: 'niet_verrijkt',
       voys_call_id: voysCallId,
@@ -128,8 +136,8 @@ export default async function (req) {
     await base44.asServiceRole.entities.LeadContactmoment.create({
       lead_id: lead.id,
       datum: new Date().toISOString(),
-      wie: 'Voys (automatisch)',
-      kanaal: 'telefoon',
+      wie,
+      kanaal,
       notitie: samenvatting,
       voys_call_id: voysCallId,
     });
