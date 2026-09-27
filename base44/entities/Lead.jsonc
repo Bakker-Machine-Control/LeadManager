@@ -46,7 +46,7 @@
         "Afgewezen"
       ],
       "default": "Nieuw",
-      "description": "Werkstatus in het opvolgproces van BMC \u2014 de vijf kolommen van het Kanban-bord. Los van smartsuite_status, die over de instroom gaat."
+      "description": "Werkstatus in het opvolgproces van BMC — de vijf kolommen van het Kanban-bord. Los van smartsuite_status, die over de instroom gaat."
     },
     "smartsuite_status": {
       "type": "string",
@@ -77,10 +77,11 @@
         "beurs",
         "website",
         "aanbeveling",
-        "overig"
+        "overig",
+        "email"
       ],
       "default": "smartsuite",
-      "description": "Herkomst van de lead. 'meta' = lead uit BMC's eigen Meta-advertenties. 'telefoon', 'persoonlijk' en 'beurs' = handmatig toegevoegd via de pagina Direct. Let op: leads met bron 'smartsuite' komen uit Unicontrols wereldwijde trechter en zijn dus NIET van BMC zelf."
+      "description": "Herkomst van de lead. 'meta' = lead uit BMC's eigen Meta-advertenties. 'telefoon', 'persoonlijk' en 'beurs' = handmatig toegevoegd via de pagina Direct. Let op: leads met bron 'smartsuite' komen uit Unicontrols wereldwijde trechter en zijn dus NIET van BMC zelf. 'email' = automatisch uit de supportmailbox (HUB)."
     },
     "quote_id": {
       "type": "string",
@@ -199,7 +200,7 @@
     },
     "bedrijf_activiteit": {
       "type": "string",
-      "description": "Wat het bedrijf doet, in \u00e9\u00e9n of twee zinnen"
+      "description": "Wat het bedrijf doet, in één of twee zinnen"
     },
     "machinepark": {
       "type": "string",
