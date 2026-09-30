@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Globe, RefreshCw, LayoutDashboard, Users, MapPin } from 'lucide-react';
+import { Globe, RefreshCw, LayoutDashboard, Users, MapPin, ShoppingCart } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, subDays } from 'date-fns';
@@ -11,6 +11,7 @@ import { periodeRange } from '@/lib/websiteUtils';
 import OverzichtTab from '@/components/website/OverzichtTab';
 import BezoekersTab from '@/components/website/BezoekersTab';
 import KaartTab from '@/components/website/KaartTab';
+import ConfiguratiesTab from '@/components/website/ConfiguratiesTab';
 import BezoekerDetail from '@/components/website/BezoekerDetail';
 
 const PERIODES = [
@@ -142,12 +143,18 @@ export default function Website() {
           <TabsTrigger value="kaart" className="gap-2">
             <MapPin className="w-4 h-4" /> Kaart
           </TabsTrigger>
+          <TabsTrigger value="configuraties" className="gap-2">
+            <ShoppingCart className="w-4 h-4" /> Configuraties
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="overzicht">
           <OverzichtTab stats={stats} laden={laden} />
         </TabsContent>
         <TabsContent value="bezoekers">
           <BezoekersTab van={range.van} tot={range.tot} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
+        </TabsContent>
+        <TabsContent value="configuraties">
+          <ConfiguratiesTab van={range.van} tot={range.tot} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
         </TabsContent>
         <TabsContent value="kaart">
           <KaartTab bezoekers={stats?.kaart || []} onOpenDetail={openBezoeker} />
