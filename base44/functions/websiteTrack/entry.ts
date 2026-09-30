@@ -16,6 +16,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 //             apparaat, ip_adres, plaats, provincie, land, landcode,
 //             lat, lon, bron
 //   heartbeat/leave: duur (seconden op deze pagina tot nu toe)
+//   configuratie (webshop, 30-09-2026): configuratie_id, omgeving, stap, stap_titel,
+//             stappen_totaal, keuzes [{sku, naam}], totaal_excl_btw, totaal_incl_btw,
+//             order_ref, toestemming, plus dezelfde locatie-/browservelden als
+//             pageview. bezoeker_id/bezoek_id/weergave_id zijn optioneel: zonder
+//             cookietoestemming stuurt de webshop geen bezoeker_id.
 //
 // Antwoord: { ok: true, verwerkt: n, fouten: [...] } — één fout event stopt
 // de rest van de batch niet.
@@ -25,6 +30,7 @@ const getal = (v) => {
   const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
   return Number.isFinite(n) ? n : null;
 };
+const VERSIE = '2026-09-30-configuratie';
 const zonderLeeg = (obj) =>
   Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== '' && v !== null && v !== undefined));
 
@@ -48,7 +54,7 @@ export default async function (req) {
     try { body = await req.json(); } catch { body = {}; }
     const events = Array.isArray(body.events) ? body.events : [];
     if (events.length === 0) {
-      return Response.json({ ok: true, verwerkt: 0, fouten: [] });
+      return Response.json({ ok: true, versie: VERSIE, verwerkt: 0, fouten: [] });
     }
 
     const db = base44.asServiceRole.entities;
@@ -75,9 +81,77 @@ export default async function (req) {
       return record;
     };
 
+    // ---- Configuratie uit de webshop: upsert op configuratie_id ----
+    const verwerkConfiguratie = async (event, timestamp) => {
+      const configuratieId = tekst(event.configuratie_id);
+      if (!configuratieId) throw new Error('configuratie_id ontbreekt');
+      const keuzes = Array.isArray(event.keuzes)
+        ? event.keuzes.slice(0, 40).map((k) => ({ sku: tekst(k?.sku), naam: tekst(k?.naam) }))
+        : null;
+      const stap = getal(event.stap);
+      const orderRef = tekst(event.order_ref);
+      const gegevens = zonderLeeg({
+        omgeving: ['staging', 'productie'].includes(tekst(event.omgeving)) ? tekst(event.omgeving) : '',
+        laatst_actief: timestamp,
+        stappen_totaal: getal(event.stappen_totaal),
+        totaal_excl_btw: getal(event.totaal_excl_btw),
+        totaal_incl_btw: getal(event.totaal_incl_btw),
+        toestemming: event.toestemming === true,
+        bezoeker_id: event.toestemming === true ? tekst(event.bezoeker_id) : '',
+        bezoek_id: event.toestemming === true ? tekst(event.bezoek_id) : '',
+        plaats: tekst(event.plaats),
+        provincie: tekst(event.provincie),
+        land: tekst(event.land),
+        landcode: tekst(event.landcode),
+        lat: getal(event.lat),
+        lon: getal(event.lon),
+        ip_adres: tekst(event.ip_adres),
+        browser: tekst(event.browser),
+        besturingssysteem: tekst(event.besturingssysteem),
+        apparaat: ['desktop', 'mobiel', 'tablet'].includes(tekst(event.apparaat)) ? tekst(event.apparaat) : '',
+      });
+      if (keuzes) {
+        gegevens.keuzes = keuzes;
+        gegevens.keuzes_tekst = keuzes.map((k) => k.naam || k.sku).filter(Boolean).join(', ');
+      }
+      if (orderRef) {
+        gegevens.order_ref = orderRef;
+        gegevens.status = 'aangevraagd';
+      }
+      const bestaand = (await db.Configuratie.filter({ configuratie_id: configuratieId }, '-created_date', 1))[0];
+      if (!bestaand) {
+        await db.Configuratie.create({
+          configuratie_id: configuratieId,
+          gestart_op: timestamp,
+          status: orderRef ? 'aangevraagd' : 'bezig',
+          laatste_stap: stap ?? 1,
+          laatste_stap_titel: tekst(event.stap_titel),
+          referrer: tekst(event.referrer),
+          bron: tekst(event.bron),
+          utm_source: tekst(event.utm_source),
+          utm_medium: tekst(event.utm_medium),
+          utm_campaign: tekst(event.utm_campaign),
+          ...gegevens,
+        });
+        return;
+      }
+      // Nooit terug in de tijd: hoogste stap blijft staan, 'aangevraagd' blijft aangevraagd.
+      if (stap !== null && stap > (bestaand.laatste_stap || 0)) {
+        gegevens.laatste_stap = stap;
+        gegevens.laatste_stap_titel = tekst(event.stap_titel);
+      }
+      if (bestaand.status === 'aangevraagd') delete gegevens.status;
+      await db.Configuratie.update(bestaand.id, gegevens);
+    };
+
     for (const event of events) {
       try {
         const type = tekst(event?.type);
+        if (type === 'configuratie') {
+          await verwerkConfiguratie(event, tekst(event?.timestamp) || new Date().toISOString());
+          verwerkt++;
+          continue;
+        }
         const bezoekerId = tekst(event?.bezoeker_id);
         const bezoekId = tekst(event?.bezoek_id);
         const weergaveId = tekst(event?.weergave_id);
@@ -232,7 +306,7 @@ export default async function (req) {
       await db.Bezoeker.update(bezoeker.id, { totale_duur: totaleDuur, aantal_paginas_totaal: paginasTotaal });
     }
 
-    return Response.json({ ok: true, verwerkt, fouten });
+    return Response.json({ ok: true, versie: VERSIE, verwerkt, fouten });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
