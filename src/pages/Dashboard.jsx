@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
 import KanbanLeadModal from '@/components/kanban/KanbanLeadModal';
+import SelectieBalk from '@/components/kanban/SelectieBalk';
 
 const SCORE_FILTERS = ['Heet', 'Warm', 'Lauw', 'Koud'];
 
@@ -22,6 +23,47 @@ export default function Dashboard() {
   const [scoreFilter, setScoreFilter] = useState('');
   const [verrijken, setVerrijken] = useState(false);
   const [geselecteerdeLead, setGeselecteerdeLead] = useState(null);
+  // Meervoudige selectie binnen één kolom: { status, ids } — een klik in een
+  // andere kolom begint meteen een nieuwe selectie
+  const [selectie, setSelectie] = useState({ status: null, ids: new Set() });
+  const [doelKolom, setDoelKolom] = useState('');
+  const [bezigVerplaatsen, setBezigVerplaatsen] = useState(false);
+
+  const wisselSelectie = (status, leadId) => {
+    setSelectie(prev => {
+      if (prev.status && prev.status !== status) {
+        return { status, ids: new Set([leadId]) };
+      }
+      const ids = new Set(prev.ids);
+      if (ids.has(leadId)) ids.delete(leadId); else ids.add(leadId);
+      return { status, ids };
+    });
+  };
+
+  const wisSelectie = () => {
+    setSelectie({ status: null, ids: new Set() });
+    setDoelKolom('');
+  };
+
+  // Verplaatst alle geselecteerde leads één voor één naar de gekozen kolom
+  const verplaatsSelectie = async () => {
+    if (!doelKolom || !selectie.ids.size) return;
+    setBezigVerplaatsen(true);
+    try {
+      for (const id of selectie.ids) {
+        await verplaatsLead(id, selectie.status, doelKolom);
+      }
+      toast({
+        title: 'Leads verplaatst',
+        description: `${selectie.ids.size} lead(s) verplaatst naar ${doelKolom}`,
+        className: 'border-green-600 bg-green-600 text-white',
+      });
+      wisSelectie();
+    } catch (e) {
+      toast({ title: 'Niet alles verplaatst', description: e.message, variant: 'destructive' });
+    }
+    setBezigVerplaatsen(false);
+  };
 
   // De kolom "Nieuw" op score aflopend (leads zonder score onderaan);
   // de overige kolommen komen al op lead_date gesorteerd van de server
@@ -123,6 +165,8 @@ export default function Dashboard() {
                 onLaadMeer={() => laadMeer(status)}
                 archief={status === 'Afgerond'}
                 onLeadClick={setGeselecteerdeLead}
+                geselecteerd={selectie.status === status ? selectie.ids : null}
+                onSelecteer={(id) => wisselSelectie(status, id)}
               />
             ))}
           </div>
@@ -133,6 +177,16 @@ export default function Dashboard() {
         lead={geselecteerdeLead}
         open={!!geselecteerdeLead}
         onClose={() => setGeselecteerdeLead(null)}
+      />
+
+      <SelectieBalk
+        kolom={selectie.status}
+        aantal={selectie.ids.size}
+        doel={doelKolom}
+        setDoel={setDoelKolom}
+        onVerplaats={verplaatsSelectie}
+        onAnnuleer={wisSelectie}
+        bezig={bezigVerplaatsen}
       />
     </div>
   );
