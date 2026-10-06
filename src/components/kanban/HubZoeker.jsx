@@ -3,7 +3,7 @@ import { zoekHubKlant } from '@/functions/zoekHubKlant';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Building2, Loader2, Search, User } from 'lucide-react';
+import { Building2, Loader2, Plus, Search, User } from 'lucide-react';
 
 // Zoekt het bedrijf of de contactpersoon van deze lead in de BMC HUB (CRM).
 // Kies je een resultaat, dan worden de ontbrekende leadgegevens (plaats,
@@ -29,6 +29,7 @@ export default function HubZoeker({ lead, onBijgewerkt }) {
   const [contacten, setContacten] = useState([]);
   const [fout, setFout] = useState('');
   const [toegevoegd, setToegevoegd] = useState('');
+  const [aanmaken, setAanmaken] = useState(false);
 
   async function zoek(e) {
     e.preventDefault();
@@ -103,6 +104,31 @@ export default function HubZoeker({ lead, onBijgewerkt }) {
 
   const leeg = gezocht && bedrijven.length === 0 && contacten.length === 0;
 
+  // Maakt de contactpersoon (en het bedrijf) in de CRM/HUB-app aan vanuit de
+  // leadgegevens, ook als de lead nog niet in de kolom Contacten staat.
+  async function maakInHub() {
+    setAanmaken(true);
+    setFout('');
+    setToegevoegd('');
+    try {
+      const res = await base44.functions.invoke('createCrmContact', { lead_id: lead.id, force: true });
+      const d = res?.data || {};
+      if (d.error) {
+        setFout(d.error);
+      } else if (d.skipped) {
+        setToegevoegd(d.reden || 'Niets aan te maken — bestaat al in de HUB.');
+      } else {
+        const vers = await base44.entities.Lead.get(lead.id);
+        onBijgewerkt(vers);
+        setToegevoegd('Aangemaakt in de HUB.');
+      }
+    } catch (err) {
+      setFout(err?.response?.data?.error || err?.data?.error || err?.message || 'Aanmaken in de HUB mislukt');
+    } finally {
+      setAanmaken(false);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border p-3 space-y-3">
       <form onSubmit={zoek} className="flex gap-2">
@@ -124,6 +150,20 @@ export default function HubZoeker({ lead, onBijgewerkt }) {
         <p className="text-xs text-muted-foreground">
           Geen bedrijf of contact gevonden in de HUB.
         </p>
+      )}
+
+      {gezocht && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 whitespace-nowrap"
+          onClick={maakInHub}
+          disabled={aanmaken}
+        >
+          {aanmaken ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+          {aanmaken ? 'Aanmaken…' : 'Aanmaken in de HUB'}
+        </Button>
       )}
 
       {bedrijven.length > 0 && (

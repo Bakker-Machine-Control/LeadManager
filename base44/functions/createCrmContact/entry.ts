@@ -16,10 +16,13 @@ export default async function(req) {
     const payload = await req.json().catch(() => ({}));
     const leadId = payload.lead_id || payload.event?.entity_id || payload.data?.id;
     if (!leadId) return Response.json({ error: 'lead_id ontbreekt' }, { status: 400 });
+    // force: handmatige aanroep vanuit HubZoeker ("Aanmaken in de HUB"),
+    // dan mag ook buiten de overgang van Nieuw naar Contacten worden aangemaakt.
+    const force = payload.force === true;
 
     const lead = await svc.entities.Lead.get(leadId);
     if (!lead) return Response.json({ error: 'Lead niet gevonden' }, { status: 404 });
-    if (lead.status !== 'Contacten') {
+    if (!force && lead.status !== 'Contacten') {
       return Response.json({ skipped: true, reden: `Status is "${lead.status}" \u2014 contactpersoon wordt alleen aangemaakt bij Contacten` });
     }
     if (lead.contact_fsm_id) {
