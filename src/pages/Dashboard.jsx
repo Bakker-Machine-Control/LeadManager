@@ -45,25 +45,23 @@ export default function Dashboard() {
     setDoelKolom('');
   };
 
-  // Verplaatst alle geselecteerde leads één voor één naar de gekozen kolom.
+  // Verplaatst een lijst met lead-ids één voor één naar de doelkolom.
   // Elke lead wordt apart opgeslagen met een korte pauze ertussen zodat de
   // database niet overstroomt; een lead die niet lukt, wordt één keer
   // opnieuw geprobeerd en blokkeert de rest van de reeks niet.
-  const verplaatsSelectie = async () => {
-    if (!doelKolom || !selectie.ids.size) return;
-    setBezigVerplaatsen(true);
+  const verplaatsMeerdere = async (ids, van, naar) => {
     const wacht = (ms) => new Promise(r => setTimeout(r, ms));
     let gelukt = 0;
     let mislukt = [];
     const probeer = async (id) => {
       try {
-        await verplaatsLead(id, selectie.status, doelKolom);
+        await verplaatsLead(id, van, naar);
         return true;
       } catch {
         return false;
       }
     };
-    for (const id of selectie.ids) {
+    for (const id of ids) {
       if (await probeer(id)) {
         gelukt++;
       } else {
@@ -81,6 +79,10 @@ export default function Dashboard() {
         await wacht(150);
       }
     }
+    return { gelukt, mislukt };
+  };
+
+  const toonResultaat = (gelukt, mislukt, naar) => {
     if (mislukt.length) {
       toast({
         title: 'Niet alles verplaatst',
@@ -90,10 +92,17 @@ export default function Dashboard() {
     } else {
       toast({
         title: 'Leads verplaatst',
-        description: `${gelukt} lead(s) verplaatst naar ${doelKolom}`,
+        description: `${gelukt} lead(s) verplaatst naar ${naar}`,
         className: 'border-green-600 bg-green-600 text-white',
       });
     }
+  };
+
+  const verplaatsSelectie = async () => {
+    if (!doelKolom || !selectie.ids.size) return;
+    setBezigVerplaatsen(true);
+    const { gelukt, mislukt } = await verplaatsMeerdere(selectie.ids, selectie.status, doelKolom);
+    toonResultaat(gelukt, mislukt, doelKolom);
     wisSelectie();
     setBezigVerplaatsen(false);
   };
@@ -134,6 +143,16 @@ export default function Dashboard() {
     const nieuweStatus = destination.droppableId;
     const oudeStatus = source.droppableId;
     if (oudeStatus === nieuweStatus) return;
+    // Sleep je een geselecteerde kaart naar een andere kolom, dan gaat de
+    // hele selectie mee in plaats van alleen de gesleepte kaart
+    if (selectie.status === oudeStatus && selectie.ids.has(draggableId) && selectie.ids.size > 1) {
+      setBezigVerplaatsen(true);
+      const { gelukt, mislukt } = await verplaatsMeerdere(selectie.ids, oudeStatus, nieuweStatus);
+      toonResultaat(gelukt, mislukt, nieuweStatus);
+      wisSelectie();
+      setBezigVerplaatsen(false);
+      return;
+    }
     try {
       await verplaatsLead(draggableId, oudeStatus, nieuweStatus);
     } catch (e) {
