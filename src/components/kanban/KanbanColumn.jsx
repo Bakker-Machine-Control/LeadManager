@@ -4,7 +4,7 @@ import { Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LeadCard from './LeadCard';
 
-export default function KanbanColumn({ status, leads, totaal, laadtMeer, onLaadMeer, archief, onLeadClick, geselecteerd, onSelecteer }) {
+export default function KanbanColumn({ status, leads, totaal, laadtMeer, onLaadMeer, archief, limiet, onToonAlle, onLeadClick, geselecteerd, onSelecteer }) {
   // Nog niet geladen leads in deze kolom (totaal komt van de server)
   const nogMeer = Math.max(0, totaal - leads.length);
 
@@ -45,6 +45,12 @@ export default function KanbanColumn({ status, leads, totaal, laadtMeer, onLaadM
               <Archive className="w-3.5 h-3.5" />
               Naar het archief
             </Link>
+          </Button>
+        </div>
+      ) : limiet != null && nogMeer > 0 ? (
+        <div className="px-2 pb-2">
+          <Button variant="outline" size="sm" className="w-full" onClick={onToonAlle}>
+            Toon alle (nog {nogMeer})
           </Button>
         </div>
       ) : nogMeer > 0 && (

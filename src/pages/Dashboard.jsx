@@ -28,6 +28,9 @@ export default function Dashboard() {
   const [selectie, setSelectie] = useState({ status: null, ids: new Set() });
   const [doelKolom, setDoelKolom] = useState('');
   const [bezigVerplaatsen, setBezigVerplaatsen] = useState(false);
+  // Kolom Afgewezen toont standaard alleen de laatste 10 kaarten; met
+  // "Toon alle" wordt de hele kolom zichtbaar
+  const [toonAlleAfgewezen, setToonAlleAfgewezen] = useState(false);
 
   const wisselSelectie = (status, leadId) => {
     setSelectie(prev => {
@@ -111,6 +114,7 @@ export default function Dashboard() {
   // de overige kolommen komen al op lead_date gesorteerd van de server
   const kolomLeads = (status) => {
     const leads = kolommen[status]?.leads || [];
+    if (status === 'Afgewezen' && !toonAlleAfgewezen) return leads.slice(0, 10);
     if (status !== 'Nieuw') return leads;
     return [...leads].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   };
@@ -216,6 +220,8 @@ export default function Dashboard() {
                 laadtMeer={laadtMeerStatus === status}
                 onLaadMeer={() => laadMeer(status)}
                 archief={status === 'Afgerond'}
+                limiet={status === 'Afgewezen' && !toonAlleAfgewezen ? 10 : null}
+                onToonAlle={() => setToonAlleAfgewezen(true)}
                 onLeadClick={setGeselecteerdeLead}
                 geselecteerd={selectie.status === status ? selectie.ids : null}
                 onSelecteer={(id) => wisselSelectie(status, id)}
