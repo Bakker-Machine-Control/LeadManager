@@ -16,7 +16,15 @@ export default function LeadCard({ lead, index, onClick, geselecteerd, onSelecte
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          onClick={onClick}
+          onClick={(e) => {
+            // Cmd (Apple) of Ctrl ingedrukt: kaart (de)selecteren in plaats van openen
+            if (e.metaKey || e.ctrlKey) {
+              e.preventDefault();
+              onSelecteer?.(lead.id);
+              return;
+            }
+            onClick?.();
+          }}
           className={`rounded-md border border-border bg-card p-3 text-sm shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/60 transition-colors ${
             snapshot.isDragging ? 'ring-2 ring-primary opacity-90' : ''
           } ${geselecteerd ? 'ring-2 ring-primary bg-primary/5' : ''}`}

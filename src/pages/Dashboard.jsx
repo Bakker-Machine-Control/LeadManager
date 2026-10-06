@@ -45,23 +45,56 @@ export default function Dashboard() {
     setDoelKolom('');
   };
 
-  // Verplaatst alle geselecteerde leads één voor één naar de gekozen kolom
+  // Verplaatst alle geselecteerde leads één voor één naar de gekozen kolom.
+  // Elke lead wordt apart opgeslagen met een korte pauze ertussen zodat de
+  // database niet overstroomt; een lead die niet lukt, wordt één keer
+  // opnieuw geprobeerd en blokkeert de rest van de reeks niet.
   const verplaatsSelectie = async () => {
     if (!doelKolom || !selectie.ids.size) return;
     setBezigVerplaatsen(true);
-    try {
-      for (const id of selectie.ids) {
+    const wacht = (ms) => new Promise(r => setTimeout(r, ms));
+    let gelukt = 0;
+    let mislukt = [];
+    const probeer = async (id) => {
+      try {
         await verplaatsLead(id, selectie.status, doelKolom);
+        return true;
+      } catch {
+        return false;
       }
+    };
+    for (const id of selectie.ids) {
+      if (await probeer(id)) {
+        gelukt++;
+      } else {
+        mislukt.push(id);
+      }
+      await wacht(150);
+    }
+    // Eén herkansing voor de leads die net niet gingen
+    if (mislukt.length) {
+      await wacht(1000);
+      const opnieuw = mislukt;
+      mislukt = [];
+      for (const id of opnieuw) {
+        if (await probeer(id)) gelukt++; else mislukt.push(id);
+        await wacht(150);
+      }
+    }
+    if (mislukt.length) {
+      toast({
+        title: 'Niet alles verplaatst',
+        description: `${gelukt} verplaatst, ${mislukt.length} mislukt. Probeer de rest later opnieuw.`,
+        variant: 'destructive',
+      });
+    } else {
       toast({
         title: 'Leads verplaatst',
-        description: `${selectie.ids.size} lead(s) verplaatst naar ${doelKolom}`,
+        description: `${gelukt} lead(s) verplaatst naar ${doelKolom}`,
         className: 'border-green-600 bg-green-600 text-white',
       });
-      wisSelectie();
-    } catch (e) {
-      toast({ title: 'Niet alles verplaatst', description: e.message, variant: 'destructive' });
     }
+    wisSelectie();
     setBezigVerplaatsen(false);
   };
 
@@ -114,7 +147,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold">Kanban-bord</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Sleep leads tussen kolommen om de werkstatus te wijzigen
+            Sleep leads tussen kolommen om de werkstatus te wijzigen, of selecteer er meerdere met ⌘/Ctrl + klik
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
