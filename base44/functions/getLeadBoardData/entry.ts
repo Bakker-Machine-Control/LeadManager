@@ -13,7 +13,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // herkomst (bijv. 'meta' voor BMC's eigen Meta-advertenties).
 
 const STATUSSEN = ['Nieuw', 'Contacten', 'Afspraak', 'Afgerond', 'Afgewezen'];
-const STAP = 1000;
+const SCAN = 1000;
 
 // Alleen de velden die het bord en de Meta-pagina nodig hebben
 function leanLead(l) {
@@ -43,11 +43,11 @@ function leanLead(l) {
   };
 }
 
-// Telt het aantal leads dat aan de query voldoet. Bij 14k+ leads is alles
-// ophalen veel te zwaar, dus we tellen met lichtgewicht sondes (maximaal 1
-// record per aanroep) via skip in stappen van 1000: eerst wordt bepaald
-// tussen welke twee posities de grens ligt, daarna verfijnt een binaire
-// zoek de exacte telling. Elke ophaalactie blijft zo begrensd.
+// Telt het aantal leads dat aan de query voldoet. Bij grote bestanden is alles
+// ophalen te zwaar, dus we tellen met lichtgewicht sondes (maximaal 1 record
+// per aanroep) via skip in stappen van 1000: eerst wordt bepaald tussen welke
+// twee posities de grens ligt, daarna verfijnt een binaire zoek de exacte
+// telling. Elke ophaalactie blijft zo begrensd.
 async function telLeads(base44, query) {
   const sonde = async (skip) =>
     (await base44.asServiceRole.entities.Lead.filter(query, '-created_date', 1, skip)).length > 0;
@@ -56,10 +56,10 @@ async function telLeads(base44, query) {
 
   // Grens bepalen in stappen van 1000: `laag` bestaat, `hoog` is leeg
   let laag = 0;
-  let hoog = STAP;
+  let hoog = SCAN;
   while (await sonde(hoog)) {
     laag = hoog;
-    hoog += STAP;
+    hoog += SCAN;
     if (hoog > 200000) return laag; // veiligheidsklep
   }
 
@@ -72,30 +72,104 @@ async function telLeads(base44, query) {
   return laag + 1;
 }
 
-// Eén pagina voor de kolom "Nieuw", op score aflopend.
+// Kolompagina voor "Nieuw", op score aflopend.
 //
 // Of de databank leads zónder score vooraan of achteraan zet bij een aflopende
 // sortering is niet gegarandeerd. Daarom wordt de pagina uit twee gescheiden
 // stromen opgebouwd: eerst de leads mét score (score aflopend), daarna de nog
 // niet verrijkte leads (nieuwste eerst). Zo staan verrijkte leads altijd
-// bovenaan de kolom — over álle leads, niet alleen over de geladen pagina.
-async function haalNieuwPagina(base44, query, perKolom, offset) {
-  const metScore = { ...query, score: { $ne: null } };
-  const aantalMetScore = await telLeads(base44, metScore);
+// bovenaan de kolom.
+function nieuwPaginaUitMemory(rijen, perKolom, offset) {
+  const metScore = rijen.filter((l) => l.score != null).sort((a, b) => b.score - a.score);
+  const zonderScore = rijen
+    .filter((l) => l.score == null)
+    .sort((a, b) => String(b.created_date || '').localeCompare(String(a.created_date || '')));
+  const alle = [...metScore, ...zonderScore];
+  return alle.slice(offset, offset + perKolom);
+}
 
-  const pagina = [];
-  if (offset < aantalMetScore) {
-    const nodig = Math.min(perKolom, aantalMetScore - offset);
-    pagina.push(...await base44.asServiceRole.entities.Lead.filter(metScore, '-score', nodig, offset));
+// Kolompagina's en totalen verwerken voor de scanmodus (één ophaalbeurt).
+function verwerkUitMemory(alles, doelStatussen, scoreLabel, perKolom, offsets, alleen) {
+  const kolommen = {};
+  let wachtendOpVerrijking = 0;
+  for (const status of doelStatussen) {
+    const rijen = alles.filter((l) => (l.status || 'Nieuw') === status);
+    const offset = Math.max(Number(offsets[status]) || 0, 0);
+    const pagina = status === 'Nieuw'
+      ? nieuwPaginaUitMemory(rijen, perKolom, offset)
+      : rijen
+          .sort((a, b) => String(b.lead_date || '').localeCompare(String(a.lead_date || '')))
+          .slice(offset, offset + perKolom);
+    kolommen[status] = { totaal: rijen.length, leads: pagina.map(leanLead) };
   }
-  if (pagina.length < perKolom) {
-    const zonderScore = { ...query, score: null };
-    const zonderOffset = Math.max(0, offset - aantalMetScore);
-    pagina.push(...await base44.asServiceRole.entities.Lead.filter(
-      zonderScore, '-created_date', perKolom - pagina.length, zonderOffset,
-    ));
+  if (!alleen) {
+    wachtendOpVerrijking = alles.filter(
+      (l) => (l.status || 'Nieuw') === 'Nieuw'
+        && ['niet_verrijkt', 'mislukt'].includes(l.verrijking_status || 'niet_verrijkt'),
+    ).length;
   }
-  return pagina;
+  return { kolommen, wachtendOpVerrijking };
+}
+
+// Valback voor bestanden van SCAN records en meer: per kolom tellen met
+// lichtgewicht sondes en per kolom één pagina ophalen. De kolommen worden na
+// elkaar verwerkt: de data-API begrenst het aantal gelijktijdige aanroepen en
+// het tellen doet veel kleine zoekopdrachten — parallel loopt dat tegen de
+// snelheidslimiet aan.
+async function verwerkMetSondes(base44, doelStatussen, scoreLabel, perKolom, offsets, alleen) {
+  const kolommen = {};
+  let wachtendOpVerrijking = 0;
+
+  const taken = [];
+  doelStatussen.forEach((status) => taken.push(async () => {
+    const query = { status };
+    if (scoreLabel) query.score_label = scoreLabel;
+
+    const totaal = await telLeads(base44, query);
+
+    let leads = [];
+    const offset = Math.max(Number(offsets[status]) || 0, 0);
+    if (totaal > offset) {
+      // De kolom "Nieuw" staat op score aflopend (score eerst, daarna de nog
+      // niet verrijkte leads op nieuwste eerst), de overige kolommen op
+      // lead_date aflopend. Per kolom worden hoogstens per_kolom (max. 200)
+      // records opgehaald, dus het blijft licht.
+      let pagina;
+      if (status === 'Nieuw') {
+        const metScore = { ...query, score: { $ne: null } };
+        const zonderScore = { ...query, score: null };
+        const aantalMetScore = await telLeads(base44, metScore);
+        pagina = [];
+        if (offset < aantalMetScore) {
+          const nodig = Math.min(perKolom, aantalMetScore - offset);
+          pagina.push(...await base44.asServiceRole.entities.Lead.filter(metScore, '-score', nodig, offset));
+        }
+        if (pagina.length < perKolom) {
+          const zonderOffset = Math.max(0, offset - aantalMetScore);
+          pagina.push(...await base44.asServiceRole.entities.Lead.filter(
+            zonderScore, '-created_date', perKolom - pagina.length, zonderOffset,
+          ));
+        }
+      } else {
+        pagina = await base44.asServiceRole.entities.Lead.filter(query, '-lead_date', perKolom, offset);
+      }
+      leads = pagina.map(leanLead);
+    }
+    kolommen[status] = { totaal, leads };
+  }));
+
+  // Teller "wachtend op verrijking": status Nieuw en nog niet (of mislukt) verrijkt
+  if (!alleen) {
+    taken.push(async () => {
+      wachtendOpVerrijking = await telLeads(base44, {
+        status: 'Nieuw',
+        verrijking_status: { $in: ['niet_verrijkt', 'mislukt'] },
+      });
+    });
+  }
+
+  for (const taak of taken) await taak();
+  return { kolommen, wachtendOpVerrijking };
 }
 
 export default async function (req) {
@@ -131,39 +205,18 @@ export default async function (req) {
     const alleen = typeof body.alleen === 'string' && STATUSSEN.includes(body.alleen) ? body.alleen : null;
     const doelStatussen = alleen ? [alleen] : STATUSSEN;
 
-    const kolommen = {};
-    let wachtendOpVerrijking = 0;
+    // Snelpad: één volledige ophaalbeurt is genoeg zolang de database onder de
+    // scanlimiet blijft — alle kolommen worden dan in het geheugen verwerkt,
+    // met slechts één databaseaanroep in plaats van tientallen sondes.
+    const scanQuery = scoreLabel ? { score_label: scoreLabel } : {};
+    const alles = await base44.asServiceRole.entities.Lead.filter(scanQuery, '-created_date', SCAN, 0);
+    const uitMemory = alles.length < SCAN
+      ? verwerkUitMemory(alles, doelStatussen, scoreLabel, perKolom, offsets, alleen)
+      : null;
 
-    // De kolommen worden parallel verwerkt zodat het bord snel laadt
-    const taken = doelStatussen.map(async (status) => {
-      const query = { status };
-      if (scoreLabel) query.score_label = scoreLabel;
-
-      const totaal = await telLeads(base44, query);
-
-      let leads = [];
-      const offset = Math.max(Number(offsets[status]) || 0, 0);
-      if (totaal > offset) {
-        // De kolom "Nieuw" staat op score aflopend (zie haalNieuwPagina), de
-        // overige kolommen op lead_date aflopend. Per kolom worden hoogstens
-        // per_kolom (max. 200) records opgehaald, dus het blijft licht.
-        const pagina = status === 'Nieuw'
-          ? await haalNieuwPagina(base44, query, perKolom, offset)
-          : await base44.asServiceRole.entities.Lead.filter(query, '-lead_date', perKolom, offset);
-        leads = pagina.map(leanLead);
-      }
-      kolommen[status] = { totaal, leads };
-    });
-
-    // Teller "wachtend op verrijking": status Nieuw en nog niet (of mislukt) verrijkt
-    if (!alleen) {
-      taken.push(telLeads(base44, {
-        status: 'Nieuw',
-        verrijking_status: { $in: ['niet_verrijkt', 'mislukt'] },
-      }).then(t => { wachtendOpVerrijking = t; }));
-    }
-
-    await Promise.all(taken);
+    const { kolommen, wachtendOpVerrijking } = uitMemory || await verwerkMetSondes(
+      base44, doelStatussen, scoreLabel, perKolom, offsets, alleen,
+    );
 
     return Response.json({
       ok: true,
