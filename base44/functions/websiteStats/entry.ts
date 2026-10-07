@@ -2,10 +2,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Statistieken voor de Website-pagina (tab Overzicht en Kaart).
 //
-// invoer:   { periode: 'vandaag' | '7d' | '30d' | 'eigen', van?, tot? }
+// invoer:   { periode: 'vandaag' | '7d' | '30d' | 'eigen', van?, tot?, land? }
+//           `land` is de landnaam zoals opgeslagen bij de Bezoeker; leeg of 'alle' = geen filter.
 //           Bij 'eigen' zijn van en tot de ISO- of datumstrings van het formulier.
 // antwoord: { ok, van, tot, bezoekers, bezoeken, nieuw, terugkerend, gem_duur,
-//             top_paginas, bronnen, provincies, landen, nu_op_site, kaart }
+//             top_paginas, bronnen, provincies, landen, beschikbare_landen, nu_op_site, kaart }
 
 function groepeer(items, sleutel) {
   const map = new Map();
@@ -53,16 +54,19 @@ export default async function (req) {
     }
     const vanISO = van.toISOString();
     const totISO = tot.toISOString();
+    const landFilter = typeof body.land === 'string' && body.land.trim() && body.land.trim() !== 'alle'
+      ? body.land.trim()
+      : null;
 
     const db = base44.asServiceRole.entities;
 
     // Bezoeken in de periode
-    const bezoeken = await db.Bezoek.filter(
+    const bezoekenAlle = await db.Bezoek.filter(
       { gestart_op: { $gte: vanISO, $lte: totISO } },
       '-gestart_op',
       1000
     );
-    const bezoekerIds = new Set(bezoeken.map(b => b.bezoeker_id).filter(Boolean));
+    const bezoekerIdsAlle = new Set(bezoekenAlle.map(b => b.bezoeker_id).filter(Boolean));
 
     // Bezoekers met activiteit in de periode (laatste bezoek binnen of na de start)
     const bezoekersRuim = await db.Bezoeker.filter(
@@ -70,7 +74,15 @@ export default async function (req) {
       '-laatste_bezoek',
       1000
     );
-    const inPeriode = bezoekersRuim.filter(b => bezoekerIds.has(b.bezoeker_id));
+    const inPeriodeAlle = bezoekersRuim.filter(b => bezoekerIdsAlle.has(b.bezoeker_id));
+
+    // Alle landen in de periode (ongefilterd), zodat de keuzelijst compleet blijft na het kiezen van een land
+    const beschikbareLanden = groepeer(inPeriodeAlle, 'land');
+
+    // Landfilter: beperk bezoekers, bezoeken en paginaweergaven tot bezoekers uit het gekozen land
+    const inPeriode = landFilter ? inPeriodeAlle.filter(b => (b.land || '') === landFilter) : inPeriodeAlle;
+    const bezoekerIds = new Set(inPeriode.map(b => b.bezoeker_id).filter(Boolean));
+    const bezoeken = landFilter ? bezoekenAlle.filter(b => bezoekerIds.has(b.bezoeker_id)) : bezoekenAlle;
 
     const vanMs = van.getTime();
     const nieuw = inPeriode.filter(b => new Date(b.eerste_bezoek || 0).getTime() >= vanMs).length;
@@ -83,11 +95,12 @@ export default async function (req) {
       : null;
 
     // Top-10 pagina's
-    const weergaven = await db.Paginaweergave.filter(
+    const weergavenAlle = await db.Paginaweergave.filter(
       { gestart_op: { $gte: vanISO, $lte: totISO } },
       '-gestart_op',
       1000
     );
+    const weergaven = landFilter ? weergavenAlle.filter(w => bezoekerIds.has(w.bezoeker_id)) : weergavenAlle;
     const perPad = new Map();
     for (const w of weergaven) {
       const pad = w.pad || w.url || '(onbekend)';
@@ -128,7 +141,11 @@ export default async function (req) {
         if (gevonden[0]) liveBezoekers.set(id, gevonden[0]);
       }
     }
-    const nuOpSite = live.map(b => {
+    const nuOpSite = live.filter(b => {
+      if (!landFilter) return true;
+      const bz = liveBezoekers.get(b.bezoeker_id) || {};
+      return (bz.land || '') === landFilter;
+    }).map(b => {
       const bz = liveBezoekers.get(b.bezoeker_id) || {};
       return {
         bezoek_id: b.bezoek_id,
@@ -171,6 +188,7 @@ export default async function (req) {
       bronnen,
       provincies,
       landen,
+      beschikbare_landen: beschikbareLanden,
       nu_op_site: nuOpSite,
       kaart,
     });
