@@ -29,9 +29,8 @@ const STATUS_STIJL = {
 const STATUSEN = ['anoniem', 'bekend', 'lead', 'klant'];
 const BRONNEN = ['google', 'facebook', 'instagram', 'linkedin', 'direct', 'email', 'overig'];
 
-export default function BezoekersTab({ van, tot, onOpenDetail, ververstOp }) {
+export default function BezoekersTab({ van, tot, land = 'alle', onOpenDetail, ververstOp }) {
   const [bezoekers, setBezoekers] = useState(null);
-  const [landFilter, setLandFilter] = useState('alle');
   const [bronFilter, setBronFilter] = useState('alle');
   const [typeFilter, setTypeFilter] = useState('alle');
   const [statusFilter, setStatusFilter] = useState('alle');
@@ -49,7 +48,7 @@ export default function BezoekersTab({ van, tot, onOpenDetail, ververstOp }) {
   const gefilterd = (bezoekers || []).filter((b) => {
     const tijdstip = new Date(b.laatste_bezoek || b.eerste_bezoek || 0).getTime();
     if (tijdstip < vanMs || tijdstip > totMs) return false;
-    if (landFilter !== 'alle' && (b.land || '') !== landFilter) return false;
+    if (land !== 'alle' && (b.land || '') !== land) return false;
     if (bronFilter !== 'alle' && (b.eerste_bron || 'direct') !== bronFilter) return false;
     if (typeFilter !== 'alle') {
       const nieuw = new Date(b.eerste_bezoek || 0).getTime() >= vanMs;
@@ -64,13 +63,11 @@ export default function BezoekersTab({ van, tot, onOpenDetail, ververstOp }) {
     return true;
   });
 
-  const landen = [...new Set((bezoekers || []).map((b) => b.land).filter(Boolean))].sort();
-
   return (
     <div className="space-y-4">
       {/* Filters */}
       <Card>
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -80,15 +77,6 @@ export default function BezoekersTab({ van, tot, onOpenDetail, ververstOp }) {
               className="pl-9"
             />
           </div>
-          <Select value={landFilter} onValueChange={setLandFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="alle">Alle landen</SelectItem>
-              {landen.map((l) => (
-                <SelectItem key={l} value={l}>{l}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={bronFilter} onValueChange={setBronFilter}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
