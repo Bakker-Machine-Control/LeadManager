@@ -20,7 +20,7 @@ const euro = (n) =>
     ? new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(n)
     : '—';
 
-export default function ConfiguratiesTab({ van, tot, onOpenDetail, ververstOp }) {
+export default function ConfiguratiesTab({ van, tot, land = 'alle', onOpenDetail, ververstOp }) {
   const [rijen, setRijen] = useState(null);
   const [statusFilter, setStatusFilter] = useState('alle');
   const [omgevingFilter, setOmgevingFilter] = useState('productie');
@@ -39,6 +39,7 @@ export default function ConfiguratiesTab({ van, tot, onOpenDetail, ververstOp })
   const gefilterd = (rijen || []).filter((c) => {
     const t = new Date(c.gestart_op || 0).getTime();
     if (t < vanMs || t > totMs) return false;
+    if (land !== 'alle' && (c.land || '') !== land) return false;
     if (statusFilter !== 'alle' && (c.status || 'bezig') !== statusFilter) return false;
     if (omgevingFilter !== 'alle' && (c.omgeving || 'productie') !== omgevingFilter) return false;
     if (zoek) {
