@@ -30,6 +30,13 @@ export default function Website() {
   const [laden, setLaden] = useState(false);
   const [geselecteerd, setGeselecteerd] = useState(null);
   const [ververstOp, setVerverstOp] = useState(0);
+  const [land, setLand] = useState('alle');
+
+  // Keuzelijst met landen: alle landen in de periode (ongefilterd, uit websiteStats), plus het gekozen land
+  const landOpties = [...(stats?.beschikbare_landen || [])];
+  if (land !== 'alle' && !landOpties.some((l) => l.naam === land)) {
+    landOpties.push({ naam: land, aantal: 0 });
+  }
 
   const range = periodeRange(periode, van, tot);
 
@@ -42,13 +49,13 @@ export default function Website() {
     setLaden(true);
     try {
       const r = periodeRange(periode, van, tot);
-      const res = await base44.functions.invoke('websiteStats', { periode, van: r.van, tot: r.tot });
+      const res = await base44.functions.invoke('websiteStats', { periode, van: r.van, tot: r.tot, land });
       setStats(res.data);
     } catch (e) {
       toast({ title: 'Fout bij laden statistieken', description: e.message, variant: 'destructive' });
     }
     setLaden(false);
-  }, [periode, van, tot]);
+  }, [periode, van, tot, land]);
 
   // Bij "Eigen periode" meteen een geldige standaardrange: afgelopen week
   const kiesPeriode = (keuze) => {
@@ -117,6 +124,17 @@ export default function Website() {
               <Input type="date" value={tot} onChange={(e) => setTot(e.target.value)} className="w-36" />
             </div>
           )}
+          <Select value={land} onValueChange={setLand}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="alle">Alle landen</SelectItem>
+              {landOpties.map((l) => (
+                <SelectItem key={l.naam} value={l.naam}>
+                  {l.naam}{l.aantal ? ` (${l.aantal})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             onClick={() => {
@@ -151,10 +169,10 @@ export default function Website() {
           <OverzichtTab stats={stats} laden={laden} />
         </TabsContent>
         <TabsContent value="bezoekers">
-          <BezoekersTab van={range.van} tot={range.tot} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
+          <BezoekersTab van={range.van} tot={range.tot} land={land} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
         </TabsContent>
         <TabsContent value="configuraties">
-          <ConfiguratiesTab van={range.van} tot={range.tot} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
+          <ConfiguratiesTab van={range.van} tot={range.tot} land={land} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
         </TabsContent>
         <TabsContent value="kaart">
           <KaartTab bezoekers={stats?.kaart || []} onOpenDetail={openBezoeker} />
