@@ -32,6 +32,9 @@ export default function Website() {
   const [geselecteerd, setGeselecteerd] = useState(null);
   const [ververstOp, setVerverstOp] = useState(0);
   const [land, setLand] = useState('alle');
+  // Dieptelink ?tab=leads&lead=<id> (o.a. vanuit de e-mailmelding bij een websitelead)
+  const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overzicht');
+  const [leadParam] = useState(() => new URLSearchParams(window.location.search).get('lead'));
 
   // Keuzelijst met landen: alle landen in de periode (ongefilterd, uit websiteStats), plus het gekozen land
   const landOpties = [...(stats?.beschikbare_landen || [])];
@@ -151,7 +154,7 @@ export default function Website() {
         </div>
       </header>
 
-      <Tabs defaultValue="overzicht">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="overzicht" className="gap-2">
             <LayoutDashboard className="w-4 h-4" /> Overzicht
@@ -179,7 +182,7 @@ export default function Website() {
           <ConfiguratiesTab van={range.van} tot={range.tot} land={land} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
         </TabsContent>
         <TabsContent value="leads">
-          <OntvangenLeadsTab van={range.van} tot={range.tot} onOpenBezoeker={openBezoeker} ververstOp={ververstOp} />
+          <OntvangenLeadsTab van={range.van} tot={range.tot} onOpenBezoeker={openBezoeker} ververstOp={ververstOp} openLeadId={leadParam} />
         </TabsContent>
         <TabsContent value="kaart">
           <KaartTab bezoekers={stats?.kaart || []} onOpenDetail={openBezoeker} />
