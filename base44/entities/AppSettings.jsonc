@@ -45,6 +45,14 @@
     "website_track_key": {
       "type": "string",
       "description": "Sleutel waarmee de tracking-service op de Mac Studio bezoekersdata aanlevert via websiteTrack (header x-website-track-key). Leeg = websiteTrack weigert alles met 401."
+    },
+    "website_form_key": {
+      "type": "string",
+      "description": "Geheime sleutel in de Webflow-webhook-URL (?secret=) waarmee websiteFormLead formulierinzendingen accepteert. Leeg = websiteFormLead weigert alles met 401."
+    },
+    "website_lead_email": {
+      "type": "string",
+      "description": "E-mailadres(sen) dat een melding krijgt bij elke nieuwe websitelead, komma-gescheiden. Leeg = sales@bmc-consultancy.com."
     }
   },
   "required": [
