@@ -215,6 +215,31 @@
       "type": "object",
       "description": "Volledige ruwe uitkomst van de online zoekopdracht, inclusief bronnen"
     },
+    "website_submission_id": {
+      "type": "string",
+      "description": "Webflow-formulierinzending-ID. Sleutel voor idempotentie bij leads uit het websiteformulier (websiteFormLead)."
+    },
+    "website_formulier": {
+      "type": "string",
+      "description": "Naam van het Webflow-formulier waarmee de lead binnenkwam (bijv. Contact, Offerte aanvragen)"
+    },
+    "website_bericht": {
+      "type": "string",
+      "description": "Bericht/vraag die de bezoeker in het websiteformulier invulde"
+    },
+    "website_velden": {
+      "type": "object",
+      "description": "Alle ingevulde formuliervelden zoals Webflow ze aanleverde"
+    },
+    "bezoeker_id": {
+      "type": "string",
+      "description": "Koppeling met Bezoeker (first-party cookie van de bmc-tracker), als het websiteformulier die meestuurde"
+    },
+    "melding_verstuurd": {
+      "type": "boolean",
+      "default": false,
+      "description": "Of de e-mailmelding naar sales voor deze websitelead is verstuurd"
+    },
     "raw_data": {
       "type": "object",
       "description": "Raw record data from SmartSuite. Bevat onder meer de campagne, het formuliertype (getaquote, bookademo) en een checklist met belpogingen van het internationale team."
