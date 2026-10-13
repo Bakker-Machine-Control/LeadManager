@@ -19,7 +19,7 @@ const STATUS_STIJL = {
   Afgewezen: 'bg-muted text-muted-foreground',
 };
 
-export default function OntvangenLeadsTab({ van, tot, ververstOp, onOpenBezoeker }) {
+export default function OntvangenLeadsTab({ van, tot, ververstOp, onOpenBezoeker, openLeadId }) {
   const [rijen, setRijen] = useState(null);
   const [zoek, setZoek] = useState('');
   const [statusFilter, setStatusFilter] = useState('alle');
@@ -31,6 +31,12 @@ export default function OntvangenLeadsTab({ van, tot, ververstOp, onOpenBezoeker
       .catch(() => setRijen([]));
 
   useEffect(() => { laad(); }, [ververstOp]);
+
+  // Dieptelink: open meteen de lead uit ?lead=<id>
+  useEffect(() => {
+    if (!openLeadId) return;
+    base44.entities.Lead.get(openLeadId).then(setGeselecteerd).catch(() => {});
+  }, [openLeadId]);
 
   const vanMs = new Date(van).getTime();
   const totMs = new Date(tot).getTime();
