@@ -17,8 +17,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // e-mailadres of telefoonnummer, dan komt er een contactmoment bij die lead
 // in plaats van een nieuwe lead. De e-mailmelding gaat in beide gevallen.
 
-const VERSIE = '2026-10-13-webflow';
+const VERSIE = '2026-10-13-webflow-mail';
 const STANDAARD_MAIL = 'sales@bmc-consultancy.com';
+const APP_URL = 'https://sales.bmc-consultancy.com';
 
 const tekst = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
 const sleutel = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
@@ -188,14 +189,35 @@ export default async function (req) {
       .split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
     const rijen = Object.entries(data)
       .filter(([k]) => sleutel(k) && !VELDEN.bezoeker_id.includes(sleutel(k)))
-      .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#666;vertical-align:top">${esc(k)}</td><td style="padding:4px 0">${esc(v).replace(/\n/g, '<br>')}</td></tr>`)
+      .map(([k, v]) => {
+        let waarde = esc(v).replace(/\n/g, '<br>');
+        const s = sleutel(k);
+        if (VELDEN.email.includes(s) && tekst(v)) waarde = `<a href="mailto:${esc(v)}" style="color:#1d4ed8">${esc(v)}</a>`;
+        if (VELDEN.telefoon.includes(s) && tekst(v)) waarde = `<a href="tel:${esc(v).replace(/[^+0-9]/g, '')}" style="color:#1d4ed8">${esc(v)}</a>`;
+        return `<tr><td style="padding:8px 16px 8px 0;color:#6b7280;vertical-align:top;white-space:nowrap;border-bottom:1px solid #f1f5f9">${esc(k)}</td><td style="padding:8px 0;color:#111827;border-bottom:1px solid #f1f5f9">${waarde}</td></tr>`;
+      })
       .join('');
+    const leadUrl = `${APP_URL}/website?tab=leads&lead=${lead.id}`;
     const onderwerp = `Nieuwe websitelead: ${naam || email || 'onbekend'}${bedrijf ? ` (${bedrijf})` : ''}`;
     const html = `
-      <p>Er is een ${nieuw ? 'nieuwe lead' : 'nieuwe aanvraag van een bestaande lead'} binnengekomen via het formulier <b>${esc(formulier)}</b> op de website.</p>
-      <table style="border-collapse:collapse;font-size:14px">${rijen}</table>
-      ${paginaUrl ? `<p style="color:#666;font-size:13px">Pagina: ${esc(paginaUrl)}</p>` : ''}
-      <p style="color:#666;font-size:13px">De lead staat in de BMC Sales tool onder Website → Ontvangen leads.</p>`;
+<div style="background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
+    <div style="background:#1e3a8a;color:#ffffff;padding:18px 24px">
+      <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.8">Bakker Machine Control</div>
+      <div style="font-size:20px;font-weight:bold;margin-top:4px">${nieuw ? 'Nieuwe websitelead' : 'Nieuwe aanvraag van bestaande lead'}</div>
+    </div>
+    <div style="padding:24px">
+      <p style="margin:0 0 16px;color:#374151;font-size:15px">Via het formulier <b>${esc(formulier)}</b> op de website is een aanvraag binnengekomen.</p>
+      <table style="border-collapse:collapse;font-size:14px;width:100%">${rijen}</table>
+      <div style="margin:24px 0 8px">
+        <a href="${leadUrl}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;font-size:14px">Open lead in de Sales tool</a>
+        ${email ? `<a href="mailto:${esc(email)}" style="display:inline-block;margin-left:8px;color:#1d4ed8;text-decoration:none;padding:12px 8px;font-size:14px">Beantwoorden</a>` : ''}
+      </div>
+      ${paginaUrl ? `<p style="margin:16px 0 0;color:#9ca3af;font-size:12px">Verstuurd vanaf ${esc(paginaUrl)}</p>` : ''}
+    </div>
+  </div>
+  <p style="text-align:center;color:#9ca3af;font-size:11px;margin-top:12px">Automatische melding uit de BMC Sales tool</p>
+</div>`;
 
     let mailFout = '';
     for (const to of ontvangers) {
