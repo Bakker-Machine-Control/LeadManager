@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Globe, RefreshCw, LayoutDashboard, Users, MapPin, ShoppingCart } from 'lucide-react';
+import { Globe, RefreshCw, LayoutDashboard, Users, MapPin, ShoppingCart, Inbox } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, subDays } from 'date-fns';
@@ -12,6 +12,7 @@ import OverzichtTab from '@/components/website/OverzichtTab';
 import BezoekersTab from '@/components/website/BezoekersTab';
 import KaartTab from '@/components/website/KaartTab';
 import ConfiguratiesTab from '@/components/website/ConfiguratiesTab';
+import OntvangenLeadsTab from '@/components/website/OntvangenLeadsTab';
 import BezoekerDetail from '@/components/website/BezoekerDetail';
 
 const PERIODES = [
@@ -164,6 +165,9 @@ export default function Website() {
           <TabsTrigger value="configuraties" className="gap-2">
             <ShoppingCart className="w-4 h-4" /> Configuraties
           </TabsTrigger>
+          <TabsTrigger value="leads" className="gap-2">
+            <Inbox className="w-4 h-4" /> Ontvangen leads
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="overzicht">
           <OverzichtTab stats={stats} laden={laden} />
@@ -173,6 +177,9 @@ export default function Website() {
         </TabsContent>
         <TabsContent value="configuraties">
           <ConfiguratiesTab van={range.van} tot={range.tot} land={land} onOpenDetail={openBezoeker} ververstOp={ververstOp} />
+        </TabsContent>
+        <TabsContent value="leads">
+          <OntvangenLeadsTab van={range.van} tot={range.tot} onOpenBezoeker={openBezoeker} ververstOp={ververstOp} />
         </TabsContent>
         <TabsContent value="kaart">
           <KaartTab bezoekers={stats?.kaart || []} onOpenDetail={openBezoeker} />
