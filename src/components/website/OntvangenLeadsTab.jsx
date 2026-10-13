@@ -51,6 +51,7 @@ export default function OntvangenLeadsTab({ van, tot, ververstOp, onOpenBezoeker
 
   const slaStatusOp = async (record, status) => {
     await base44.entities.Lead.update(record.id, { status });
+    setGeselecteerd((g) => (g && g.id === record.id ? { ...g, status } : g));
     laad();
   };
 
@@ -137,7 +138,7 @@ export default function OntvangenLeadsTab({ van, tot, ververstOp, onOpenBezoeker
       </Card>
 
       <LeadDetailModal
-        record={geselecteerd}
+        record={geselecteerd ? { ...geselecteerd, raw_data: geselecteerd.raw_data || geselecteerd.website_velden || {} } : null}
         open={!!geselecteerd}
         onClose={() => setGeselecteerd(null)}
         onStatusSave={slaStatusOp}
